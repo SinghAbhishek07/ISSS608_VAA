@@ -7,17 +7,17 @@
     "text": "About this site\n\n1 + 1\n\n[1] 2"
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "ISSS608-VAA",
-    "section": "",
-    "text": "Welcome to ISSS608 Visual Analytics and Applications.In this website, you will find my coursework prepared for this course."
-  },
-  {
     "objectID": "In-class Exercise/In-class 4/In-Class4.html",
     "href": "In-class Exercise/In-class 4/In-Class4.html",
     "title": "In_ClassExercise4",
     "section": "",
     "text": "pacman::p_load(rstatix, gt, patchwork, tidyverse)\n\n\nexam_data<-read_csv(\"data/Exam_data.csv\")\n\n\nThe PlotThe Code Chunk\n\n\n\n\n\n\n\n\n\n\nggplot(exam_data,\n       aes(sample=ENGLISH))+\n  stat_qq() +\n  stat_qq_line()\n\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nWe can see that the points deviate significantly from the straight diagonal line. This is a clear inidcation that the set of data is not normally distributed.\n\n\n\nComibining statistical graph and analysis table\nNeed to install webshot\n::: panel-tabset"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "ISSS608-VAA",
+    "section": "",
+    "text": "Welcome to ISSS608 Visual Analytics and Applications.In this website, you will find my coursework prepared for this course."
   }
 ]
