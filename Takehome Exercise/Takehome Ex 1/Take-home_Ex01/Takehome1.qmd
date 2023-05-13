@@ -1,0 +1,403 @@
+---
+title: "Take-home Exercise 1"
+subtitle:  "**<center> Exploring Demographic and Financial Characteristics of the City of Engagement</center>**"
+author: "Abhishek Singh"
+date: 12 May 2023
+date-modified: "`r Sys.Date()`"
+output:
+  html_document:
+    css: styles.css
+
+execute: 
+  echo: true
+  eval: true
+  warning: false
+---
+
+## **Overview**
+
+The City of Engagement, a small city located in the Country of Nowhere, serves as a service center for an agriculture region known for its fruit farms and vineyards. The local council is currently preparing the Local Plan 2023, and they have conducted a sample survey of 1000 representative residents to gather data on household demographics and spending patterns. This exercise aims to uncover insights into the city's demographic and financial characteristics. The goal is to provide city managers and planners with a user-friendly and interactive solution that allows them to explore the complex data and identify hidden patterns.
+
+## **Objective**
+
+The objective of this exercise is to use the tidyverse family of packages, including ggplot2 and its extensions, to process the survey data and create appropriate static and interactive statistical graphics. By using this, I aim to
+
+-   Explore the distribution of joviality among the participants and identify any patterns or trends.
+-   Analyze the demographic characteristics of the City of Engagement
+-   Investigate whether there is a correlation between joviality and financial behavior. Are participants with higher joviality more likely to spend or save money?
+
+The city wants to use the information to help with its significant community development initiatives, particularly how to distribute a sizable grant for city renewal that it recently received it. This would make it possible for urban planners to concentrate their efforts on particular regions of the community to raise population merriment generally.
+
+## **1. Data Preparation**
+
+### 1.1 Install R packages and import dataset
+
+The code chunk below uses `pacman::p_load()` to check if packages are installed. If they are, they will be launched into R. The packages installed are
+
+-   `plotly`: Used for creating interactive web-based graphs.
+
+-   `ggstatsplot`: Used for creating graphics with details from statistical tests.
+
+-   `knitr`: Used for dynamic report generation
+
+-   `pacthwork`: Used to combine plots
+
+-   `ggdist`: Used for visualising distribution and uncertainty
+
+-   `ggthemes`: Provide additional themes for `ggplot2`
+
+-   `tidyverse`: A collection of core packages designed for data science, used extensively for data preparation and wrangling.
+
+-   `rstatix`: used for data manipulation, summarization, and group-wise comparisons
+
+-   `Hmisc` : used to compute descriptive statistics for a variable in a dataset
+
+-   `DT` : DataTables that create interactive table on html page.
+
+-   `summarytools`- used for creating summary statistics and tables for data exploration and reporting
+
+-   `kableExtra`-  is used for creating tables in various output formats, such as HTML, PDF, or Word documents.
+
+    All packages can be found within CRAN.
+
+`pacman::p_load()` function from the `pacman` package is used in the following code chunk to install and call the libraries of multiple R packages:
+
+```{r}
+#Load packages
+pacman::p_load(plotly, ggstatsplot, knitr, patchwork, ggdist, ggthemes, tidyverse,rstatix,Hmisc, DT ,summarytools,kableExtra )
+```
+
+### 1.2 Importing data sets
+
+Two datasets are provided: *Participants.csv* and *FinancialJournal.csv*.\
+I used them as **resident_info** and **financial** respectively.
+
+#### 1.2.1 Working with Participants dataset
+
+Import data from csv using `readr::read_csv()` and store it in variable ***resident_info***.
+
+**readr** is one of the tidyverse package.
+
+```{r}
+resident_info <- read_csv("data/Participants.csv")
+```
+
+::: panel-tabset
+## Datatable
+
+Displaying the datatable using the DT package
+
+```{r}
+
+DT::datatable(resident_info, class= "compact", filter='top')
+
+
+```
+
+## Structure
+
+It used to provide a compact and structured summary of the internal structure
+
+```{r}
+str(resident_info)
+```
+
+There are a total of 1011 rows and 7 variables. The output reveals that variables **participantId** and **householdSize** have been read as numeric, continuous data types, and it should changed as nominal data instead because **participantId** serve as unique identifiers and **householdSize** represent discrete categories such as 1, 2, 3.
+
+## Summary Statatics
+
+It provides a summary of the variables in the data frame, including their distribution, range, and missing values. This includes measures such as count, mean, standard deviation, minimum, maximum, and quartiles.
+
+```{r}
+Hmisc::describe(resident_info)
+
+```
+
+From the output, there are zero missing values across all columns in **resident_info**
+
+::: callout-notes
+The describe() function provides summary statistics for numerical variables by default. If we need to include categorical variables as well, it can set the fast = FALSE argument Hmisc::describe(resident_info, fast = FALSE)
+
+By setting fast = FALSE, the describe() function will calculate summary statistics for both numerical and categorical variables in the resident_info data frame.
+:::
+
+## Summary Table
+
+Creating detailed summary table
+
+```{r}
+df1 <- resident_info %>% 
+  select(-starts_with('Q'), -starts_with('HQ')) %>%
+  mutate_if(is.integer, as.numeric) %>%
+  mutate_if(is.logical, as.numeric)
+
+flat_numeric <- df1 %>% select_if(is.numeric)
+
+print(dfSummary(flat_numeric, graph.magnif = 0.75), method = 'render')
+```
+:::
+
+::: callout-notes
+Based on the statistics from the summary table, below are some useful insights:
+
+-   `participantId`: There are 1,011 unique participant IDs. The range of IDs is from 0 to 1,010, indicating that there are no missing or duplicated IDs.
+
+-   `householdSize`: The data contains three distinct household sizes: 1, 2, and 3. The most common household size is 2, followed by 1 and then 3. The proportions indicate that 33.3% of the households have a size of 1, 36.9% have a size of 2, and 29.8% have a size of 3.
+
+-   `haveKids`: There are two distinct values: FALSE and TRUE. The majority of participants (70.2%) do not have kids, while 29.8% have kids.
+
+-   `age`: The data includes 43 distinct ages, ranging from 18 to 60. The mean age is approximately 39 years, with a standard deviation of 14.3. The 5th percentile is 20, the median is 39, and the 95th percentile is 58.
+
+-   `educationLevel`: There are four distinct education levels: Bachelors, Graduate, HighSchoolOrCollege, and Low. The majority of participants (51.9%) have a HighSchoolOrCollege education level, followed by Bachelors (22.9%), Graduate (16.8%), and Low (8.3%).
+
+-   `interestGroup`: There are 10 distinct interest groups labeled from A to J. The frequencies and proportions indicate the distribution of participants across these interest groups.
+
+-   `joviality`: Joviality is a numeric variable ranging from 0 to 1. The mean joviality score is approximately 0.494, with a standard deviation of 0.3364. The 5th percentile is 0.05642, the median is 0.47754, and the 95th percentile is 0.96024.
+:::
+
+-   **Changing Data Types**:
+
+    -   **participantId** is classified as `<dbl>`, numerical continuous data, instead of nominal. This is cast as `<chr>` class using `as.factor()`
+
+    -   **householdSize** is classified as `<dbl>`, but categorical in nature with different levels. This is cast as `<chr>` class using `as.factor()
+
+    -   **educationLevel** is classified as `<chr  >` categorical data,which has 4 different category. It need to be changed using ordered() function.
+
+::: panel-tabset
+## Changing data type
+
+```{r}
+
+resident_new <- resident_info %>%
+# Changing Data Types of participantsID , household, educationlevel
+   mutate(participantId = as.factor(participantId),
+         householdSize = as.factor(householdSize),
+         educationLevel = as.ordered(educationLevel))
+
+```
+
+## Checking the changes
+
+```{r}
+# Check the data types of variables
+str(resident_new)
+
+```
+:::
+
+- **Adding a new column Age Group**
+
+::: panel-tabset
+
+## Adding Age-Group
+
+First we can calculate the range using the quartile() function and then group them according and check their visualization after grouping them
+
+```{r}
+# Calculate the percentile values for age
+age_percentiles <- quantile(resident_new$age, probs = c(0.25, 0.5, 0.75, 1))
+
+# Display the percentile values
+print(age_percentiles)
+
+```
+Based on the result, now will group them accordingly
+
+```{r}
+
+# Define the percentile ranges
+age_percentiles <- quantile(resident_new$age, probs = c(0, 0.25, 0.5, 0.75, 1))
+
+# Create age group labels based on the percentile ranges
+age_labels <- c("18-29 yrs", "30-39 yrs", "40-50 yrs", "51-60 yrs")
+
+# Create age groups based on the percentile ranges
+resident_new$age_group <- cut(resident_new$age, breaks = age_percentiles, labels = age_labels, include.lowest = TRUE)
+```
+
+```{r}
+# Display the updated table with age groups
+str(resident_new)
+```
+::: callout-notes
+cut() is used to create age groups based on the age column in the resident_new table. The breaks argument takes the percentile ranges obtained earlier, and the labels argument assigns labels to each group. The include.lowest = TRUE parameter ensures that the lowest age value is included in the first group.
+:::
+
+
+## Violin Plot
+
+```{r}
+
+# Create a violin plot
+ggplot(resident_new, aes(x = age_group, y = age)) +
+  geom_violin() +
+  xlab("Age Group") +
+  ylab("Age") +
+  ggtitle("Distribution of Age by Age Group")
+```
+:::
+
+
+#### 1.2.2 Working with FinancialJournal dataset
+
+Import data from csv using `readr::read_csv()` and store it in variable ***financial***.
+
+**readr** is one of the tidyverse package.
+
+```{r}
+financial <- read_csv("data/FinancialJournal.csv")
+```
+
+::: panel-tabset
+## Datatable
+
+Displaying the datatable using the DT package
+
+```{r}
+
+DT:: datatable(head(financial,100),options = list(pagelength=10,scrollX='400px'),class='cell-border stripe',filter='top')
+
+
+```
+
+## Structure
+
+It used to provide a compact and structured summary of the internal structure
+
+```{r}
+str(financial)
+```
+
+There are a total of 1,513,636 rows and 4 variables. The output reveals that variables **participantId** been read as numeric, continuous data types, and it should changed as nominal data instead because **participantId** serve as unique identifiers .
+
+## Summary Statatics
+
+It provides a summary of the variables in the data frame, including their distribution, range, and missing values. This includes measures such as count, mean, standard deviation, minimum, maximum, and quartiles.
+
+```{r}
+Hmisc::describe(financial)
+
+```
+
+From the output, there are zero missing values across all columns in **financial**
+
+::: callout-notes
+The describe() function provides summary statistics for numerical variables by default. If we need to include categorical variables as well, it can set the fast = FALSE argument Hmisc::describe(resident_info, fast = FALSE)
+
+By setting fast = FALSE, the describe() function will calculate summary statistics for both numerical and categorical variables in the resident_info data frame.
+:::
+
+## Summary Table
+
+Creating detailed summary table
+
+```{r}
+df2 <- financial %>% 
+  select(-starts_with('Q'), -starts_with('HQ')) %>%
+  mutate_if(is.integer, as.numeric) %>%
+  mutate_if(is.logical, as.numeric)
+
+flat_numeric1 <- df2 %>% select_if(is.numeric)
+
+print(dfSummary(flat_numeric1, graph.magnif = 0.75), method = 'render')
+```
+:::
+
+::: callout-notes
+Based on the statistics from the summary table, below are some useful insights:
+
+
+-    `Participant ID`: There are 1,011 unique participants in the financial data. The participant ID ranges from 0 to 1,010. .
+
+-    `Timestamp`: The financial data spans a time period from March 1, 2022, to February 28, 2023. The timestamp variable shows the date and time of each financial transaction. .
+
+-    `Category`: There are six distinct categories in the financial data, including Education, Food, Recreation, RentAdjustment, Shelter, and Wage. The most frequent category is Food, accounting for approximately 52.2% of the transactions, followed by Recreation (19.6%) and Wage (27.3%).
+
+-   `Amount`: The amount variable represents the monetary value of each transaction. The mean amount is 20.05, indicating an average transaction value. The range of the amounts is from -1562.726 to 4096.526, with a wide distribution. The majority of the amounts fall within the range of -21.050 to 159.561.
+:::
+
+-   **Changing Data Types**:
+
+    -   **participantId** is classified as `<dbl>`, numerical continuous data, instead of nominal. This is cast as `<chr>` class using `as.factor()`
+
+    -   **timestamp** has a big value contains date and time both, which is not required for our anaylsis. So i will change it into Year-month bascially extract that data only from timestamp and save it.
+
+    -   **category** is classified as `<chr  >`but categorical data,which has 4 different category. It need to be changed using `as.factor()`.
+    
+    -   **amount** has decimal point upto 10. It will be rounded upto 2 for readability and easily computation.
+
+::: panel-tabset
+## Changing data type
+
+```{r}
+
+financial_new <- financial %>%
+  mutate(
+
+# Changing participantId to nominal
+participantId = as.factor(participantId),
+
+# Extracting Year-Month from timestamp
+timestamp = format(as.Date(timestamp), "%Y-%m"),
+
+# Changing category to factor
+category = as.factor(category),
+
+# Rounding amount to 2 decimal places
+amount = round(amount, 2)
+
+)
+```
+
+## Checking the changes
+
+```{r}
+# Check the data types of variables
+str(financial_new)
+
+```
+:::
+
+
+- **Divide Category into new columns and count Total Amount for each category**
+
+::: panel-tabset
+## Category's 
+```{r}
+financial_new <- financial_new %>%
+  group_by(participantId, timestamp, category) %>%
+  summarise(total_amount = sum(amount), .groups = "drop") %>%
+  pivot_wider(names_from = category, values_from = total_amount)
+
+```
+
+The code chunk groups the data by participantId, timestamp, and category, calculates the sum of amount for each group, and then reshapes the data to have separate columns for each category, with the corresponding total_amount values. The resulting data frame is assigned to financial_new.The pivot_wider() function is used to reshape the data frame from a long format to a wide format. It takes the distinct category values as column names and populates the corresponding total_amount values for each participantId and timestamp combination.
+
+## Checking the changes
+```{r}
+DT::datatable(financial_new, class= "compact", filter='top')
+```
+:::
+
+
+### 1.2 Joining the Tables
+
+We have 2 dataset **resident_new** with columns `participantId`, `householdSize`, `haveKids`, `age`, `educationLevel`,`interestGroup`, `joviality`, `age_group` and **financial_new** with columns ``participantId`, `timestamp`,`Education` ,`Food`, `Recreation`, `Shelter`, `Wage`, `RentAdjustment`.
+
+::: panel-tabset
+
+## Join Table
+```{r}
+
+resident_financial <- left_join(resident_new, financial_new, by = "participantId")
+
+```
+The code chunk will create a new data frame resident_financial that combines the columns from both tables based on matching participantId values. The resulting data frame will include all the columns from both tables.
+
+## Check Table
+```{r}
+DT::datatable(resident_financial, class= "compact", filter='top')
+```
+
+:::
+
