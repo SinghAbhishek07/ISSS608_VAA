@@ -1,0 +1,294 @@
+---
+title: "In-Class1"
+author: "Abhishek Singh"
+published: "`May 11 2023`"
+date-modified: "`r Sys.Date()`"
+execute: 
+  echo: true
+  eval: true
+  warning: false
+---
+
+Loading Tidyverse
+```{r}
+
+pacman::p_load(tidyverse)
+```
+
+Importing data
+```{r}
+exam_data <- read_csv("data/Exam_data.csv")
+```
+
+## Working with theme
+
+Changing the colors of plot panel background of theme_minimal() to light blue and the color of grid lines to white.
+
+:::panel-tabset
+
+## Plot
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(data=exam_data, aes(x=RACE)) +
+  geom_bar() +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "lightblue", colour = "lightblue", 
+                                    size = 0.5, linetype = "solid"),
+    panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "white"), 
+    panel.grid.minor = element_line(size = 0.25, linetype = 'solid', colour = "white"))
+```
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(data=exam_data, aes(x=RACE)) +
+  geom_bar() +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "lightblue", colour = "lightblue", 
+                                    size = 0.5, linetype = "solid"),
+    panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "white"), 
+    panel.grid.minor = element_line(size = 0.25, linetype = 'solid', colour = "white"))
+
+```
+:::
+## Designing Data-drive Graphics for Analysis I
+
+
+:::panel-tabset
+
+## Plot
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(data=exam_data, 
+       aes(x=reorder(RACE,RACE,
+                     function(x)-length(x)))) +
+  geom_bar() +
+  ylim(0,220) +
+  geom_text(stat="count", 
+      aes(label=paste0(..count.., ", ", 
+      round(..count../sum(..count..)*100, 1), "%")),
+      vjust=-1) +
+  xlab("Race") +
+  ylab("No. of\nPupils") +
+  theme(axis.title.y=element_text(angle = 0))
+```
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(data=exam_data, 
+       aes(x=reorder(RACE,RACE,
+                     function(x)-length(x)))) +
+  geom_bar() +
+  ylim(0,220) +
+  geom_text(stat="count", 
+      aes(label=paste0(..count.., ", ", 
+      round(..count../sum(..count..)*100, 1), "%")),
+      vjust=-1) +
+  xlab("Race") +
+  ylab("No. of\nPupils") +
+  theme(axis.title.y=element_text(angle = 0))
+
+```
+:::
+
+This code chunk uses fct_infreq() of forcats package.
+
+:::panel-tabset
+
+## Plot
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+exam_data %>%
+  mutate(RACE = fct_infreq(RACE)) %>%
+  ggplot(aes(x = RACE)) + 
+  geom_bar()+
+  ylim(0,220) +
+  geom_text(stat="count", 
+      aes(label=paste0(after_stat(count), ", ", 
+      round(after_stat(count)/sum(after_stat(count))*100,
+            1), "%")),
+      vjust=-1) +
+  xlab("Race") +
+  ylab("No. of\nPupils") +
+  theme(axis.title.y=element_text(angle = 0))
+```
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+exam_data %>%
+  mutate(RACE = fct_infreq(RACE)) %>%
+  ggplot(aes(x = RACE)) + 
+  geom_bar()+
+  ylim(0,220) +
+  geom_text(stat="count", 
+      aes(label=paste0(after_stat(count), ", ", 
+      round(after_stat(count)/sum(after_stat(count))*100,
+            1), "%")),
+      vjust=-1) +
+  xlab("Race") +
+  ylab("No. of\nPupils") +
+  theme(axis.title.y=element_text(angle = 0))
+
+```
+:::
+
+## Designing Data-drive Graphics for Analysis II
+
+- Adding mean and median lines on the histogram plot.
+- Change fill color and line color
+
+:::panel-tabset
+
+## Plot
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(data=exam_data, 
+       aes(x= MATHS)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue") +
+  geom_vline(aes(xintercept=mean(MATHS, na.rm=T)),
+             color="red", 
+             linetype="dashed", 
+             size=1) +
+  geom_vline(aes(xintercept=median(MATHS, na.rm=T)),
+             color="grey30",
+             linetype="dashed", 
+             size=1)
+```
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(data=exam_data, 
+       aes(x= MATHS)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue") +
+  geom_vline(aes(xintercept=mean(MATHS, na.rm=T)),
+             color="red", 
+             linetype="dashed", 
+             size=1) +
+  geom_vline(aes(xintercept=median(MATHS, na.rm=T)),
+             color="grey30",
+             linetype="dashed", 
+             size=1)
+
+```
+:::
+
+## Designing Data-drive Graphics for Analysis III
+
+:::panel-tabset
+
+## Plot
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+d <- exam_data   
+d_bg <- d[, -3]  
+ggplot(d, aes(x = ENGLISH, fill = GENDER)) +
+  geom_histogram(data = d_bg, fill = "grey", alpha = .5) +
+  geom_histogram(colour = "black") +
+  facet_wrap(~ GENDER) +
+  guides(fill = 'none') +  
+  theme_bw()
+```
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(d, aes(x = ENGLISH, fill = GENDER)) +
+  geom_histogram(data = d_bg, fill = "grey", alpha = .5) +
+  geom_histogram(colour = "black") +
+  facet_wrap(~ GENDER) +
+  guides(fill = 'none') +  
+  theme_bw()
+
+```
+:::
+
+## Designing Data-drive Graphics for Analysis IV
+
+:::panel-tabset
+
+## Plot
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(data=exam_data, 
+       aes(x=MATHS, y=ENGLISH)) +
+  geom_point() +
+  coord_cartesian(xlim=c(0,100),
+                  ylim=c(0,100)) +
+  geom_hline(yintercept=50,
+             linetype="dashed",
+             color="grey60",
+             size=1) + 
+  geom_vline(xintercept=50, 
+             linetype="dashed",
+             color="grey60",
+             size=1)
+```
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+ggplot(data=exam_data, 
+       aes(x=MATHS, y=ENGLISH)) +
+  geom_point() +
+  coord_cartesian(xlim=c(0,100),
+                  ylim=c(0,100)) +
+  geom_hline(yintercept=50,
+             linetype="dashed",
+             color="grey60",
+             size=1) + 
+  geom_vline(xintercept=50, 
+             linetype="dashed",
+             color="grey60",
+             size=1)
+
+```
+:::
+
+
+## Tableau 
+
+*Links to Tableau Visualisations:*
+
+
+[Superstore Orders](https://public.tableau.com/app/profile/abhishek.singh2379/viz/SuperstoreDashboard_16815425205270/Dashboard1)

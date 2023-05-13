@@ -9,10 +9,48 @@ website:
         menu: 
           - text: "Hands-on Exercise 1"
             href: "Hands-on/Hands-on 1/Hand-on1.html"
+          - text: "Hands-on Exercise 2"
+            href: "Hands-on/Hands-on 2/Hand-on2.html"
+          - text: "Hands-on Exercise 3"
+            href: "Hands-on/Hands-on 3/Hand-on3.html"
+          - text: "Hands-on Exercise 4"
+            href: "Hands-on/Hands-on 4/Hand-on4.html"
+          - text: "Hands-on Exercise 5"
+            href: "Hands-on/Hands-on 5/Hand-on5.html"
+          - text: "Hands-on Exercise 6"
+            href: "Hands-on/Hands-on 6/Hand-on6.html"
+          - text: "Hands-on Exercise 7"
+            href: "Hands-on/Hands-on 7/Hand-on7.html"
+          - text: "Hands-on Exercise 8"
+            href: "Hands-on/Hands-on 8/Hand-on8.html"
       - text: "In-Class Exercise 1"
         menu: 
           - text: "In-Class Exercise 1"
+            href: "In-class Exercise/In-class 1/In-Class1.html"
+          - text: "In-Class Exercise 2"
+            href: "In-class Exercise/In-class 2/In-Class2.html"
+          - text: "In-Class Exercise 3"
+            href: "In-class Exercise/In-class 3/In-Class3.html"
+          - text: "In-Class Exercise 4"
             href: "In-class Exercise/In-class 4/In-Class4.html"
+          - text: "In-Class Exercise 5"
+            href: "In-class Exercise/In-class 5/In-Class5.html"
+          - text: "In-Class Exercise 6"
+            href: "In-class Exercise/In-class 6/In-Class6.html"
+          - text: "In-Class Exercise 7"
+            href: "In-class Exercise/In-class 7/In-Class7.html"
+          - text: "In-Class Exercise 8"
+            href: "In-class Exercise/In-class 8/In-Class8.html"
+      - text: "Takehome Exercise"
+        menu: 
+          - text: "Takehome Ex 1"
+            href: "Takehome Exercise/Takehome Ex 1/Take-home_Ex01/Takehome1.html"
+          - text: "Takehome Ex 2"
+            href: "Takehome Exercise/Take-home_Ex02/Takehome2.html" 
+          - text: "Takehome Ex 3"
+            href: "Takehome Exercise/Take-home_Ex03/Takehome3.html"
+          - text: "Takehome Ex 4"
+            href: "Takehome Exercise/Take-home_Ex04/Takehome4.html"                
     right:
       - href: index.qmd
         text: Home
@@ -20,7 +58,7 @@ website:
 
 format:
   html:
-    theme: cyborg
+    theme: spacelab
     css: styles.css
     toc: true
 
