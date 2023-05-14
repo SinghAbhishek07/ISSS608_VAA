@@ -499,7 +499,7 @@ plotly_household_size <- ggplotly(plot_household_size) %>%
 
 
 
-plotly_household_size
+print(plotly_household_size)
 
 ```
 
