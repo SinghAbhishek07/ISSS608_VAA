@@ -4,8 +4,6 @@ subtitle:  "**<center> Exploring Demographic and Financial Characteristics of th
 author: "Abhishek Singh"
 date: 12 May 2023
 date-modified: "`r Sys.Date()`"
-
-
 execute: 
   echo: true
   eval: true
@@ -54,7 +52,15 @@ The code chunk below uses `pacman::p_load()` to check if packages are installed.
 
 -   `summarytools`- used for creating summary statistics and tables for data exploration and reporting
 
--   `kableExtra`-  is used for creating tables in various output formats, such as HTML, PDF, or Word documents.
+-   `kableExtra`- is used for creating tables in various output formats, such as HTML, PDF, or Word documents.
+
+-   `ggplot2`- provides a flexible and layered approach to create a wide variety of high-quality static and interactive plots
+
+-   `ggpubr`- It provides a collection of easy-to-use functions for creating publication-ready plots and performing statistical analysis
+
+-   `ggridges`- used to visualize the distribution of a continuous variable across different categories or groups.
+
+-   `reshape2`- It provides functions to convert data between wide and long formats, which is useful for restructuring and aggregating data.
 
     All packages can be found within CRAN.
 
@@ -62,7 +68,7 @@ The code chunk below uses `pacman::p_load()` to check if packages are installed.
 
 ```{r}
 #Load packages
-pacman::p_load(plotly, ggstatsplot, knitr, patchwork, ggdist, ggthemes, tidyverse,rstatix,Hmisc, DT ,summarytools,kableExtra )
+pacman::p_load(plotly, ggstatsplot, knitr, patchwork, ggdist, ggthemes, tidyverse,rstatix,Hmisc, DT ,summarytools,kableExtra,ggplot2 ,ggpubr,ggridges, reshape2)
 ```
 
 ### 1.2 Importing data sets
@@ -113,7 +119,7 @@ Hmisc::describe(resident_info)
 
 From the output, there are zero missing values across all columns in **resident_info**
 
-::: callout-notes
+::: callout-tip
 The describe() function provides summary statistics for numerical variables by default. If we need to include categorical variables as well, it can set the fast = FALSE argument Hmisc::describe(resident_info, fast = FALSE)
 
 By setting fast = FALSE, the describe() function will calculate summary statistics for both numerical and categorical variables in the resident_info data frame.
@@ -135,7 +141,7 @@ print(dfSummary(flat_numeric, graph.magnif = 0.75), method = 'render')
 ```
 :::
 
-::: callout-notes
+::: {.callout-important collapse="true"}
 Based on the statistics from the summary table, below are some useful insights:
 
 -   `participantId`: There are 1,011 unique participant IDs. The range of IDs is from 0 to 1,010, indicating that there are no missing or duplicated IDs.
@@ -157,7 +163,7 @@ Based on the statistics from the summary table, below are some useful insights:
 
     -   **participantId** is classified as `<dbl>`, numerical continuous data, instead of nominal. This is cast as `<chr>` class using `as.factor()`
 
-    -   **householdSize** is classified as `<dbl>`, but categorical in nature with different levels. This is cast as `<chr>` class using `as.factor()
+    -   **householdSize** is classified as `<dbl>`, but categorical in nature with different levels. This is cast as `<chr>` class using \`as.factor()
 
     -   **educationLevel** is classified as `<chr  >` categorical data,which has 4 different category. It need to be changed using ordered() function.
 
@@ -183,10 +189,9 @@ str(resident_new)
 ```
 :::
 
-- **Adding a new column Age Group**
+-   **Adding a new column Age Group**
 
 ::: panel-tabset
-
 ## Adding Age-Group
 
 First we can calculate the range using the quartile() function and then group them according and check their visualization after grouping them
@@ -199,6 +204,7 @@ age_percentiles <- quantile(resident_new$age, probs = c(0.25, 0.5, 0.75, 1))
 print(age_percentiles)
 
 ```
+
 Based on the result, now will group them accordingly
 
 ```{r}
@@ -217,24 +223,23 @@ resident_new$age_group <- cut(resident_new$age, breaks = age_percentiles, labels
 # Display the updated table with age groups
 str(resident_new)
 ```
-::: callout-notes
+
+::: callout-note
 cut() is used to create age groups based on the age column in the resident_new table. The breaks argument takes the percentile ranges obtained earlier, and the labels argument assigns labels to each group. The include.lowest = TRUE parameter ensures that the lowest age value is included in the first group.
 :::
-
 
 ## Violin Plot
 
 ```{r}
 
-# Create a violin plot
-ggplot(resident_new, aes(x = age_group, y = age)) +
+ggplot(resident_new, aes(x = age_group, y = age, fill = age_group)) +
   geom_violin() +
   xlab("Age Group") +
   ylab("Age") +
-  ggtitle("Distribution of Age by Age Group")
+  ggtitle("Distribution of Age by Age Group") +
+  scale_fill_brewer(palette = "Set1")
 ```
 :::
-
 
 #### 1.2.2 Working with FinancialJournal dataset
 
@@ -279,7 +284,7 @@ Hmisc::describe(financial)
 
 From the output, there are zero missing values across all columns in **financial**
 
-::: callout-notes
+::: callout-tip
 The describe() function provides summary statistics for numerical variables by default. If we need to include categorical variables as well, it can set the fast = FALSE argument Hmisc::describe(resident_info, fast = FALSE)
 
 By setting fast = FALSE, the describe() function will calculate summary statistics for both numerical and categorical variables in the resident_info data frame.
@@ -301,15 +306,14 @@ print(dfSummary(flat_numeric1, graph.magnif = 0.75), method = 'render')
 ```
 :::
 
-::: callout-notes
+::: {.callout-important collapse="true"}
 Based on the statistics from the summary table, below are some useful insights:
 
+-   `Participant ID`: There are 1,011 unique participants in the financial data. The participant ID ranges from 0 to 1,010. .
 
--    `Participant ID`: There are 1,011 unique participants in the financial data. The participant ID ranges from 0 to 1,010. .
+-   `Timestamp`: The financial data spans a time period from March 1, 2022, to February 28, 2023. The timestamp variable shows the date and time of each financial transaction. .
 
--    `Timestamp`: The financial data spans a time period from March 1, 2022, to February 28, 2023. The timestamp variable shows the date and time of each financial transaction. .
-
--    `Category`: There are six distinct categories in the financial data, including Education, Food, Recreation, RentAdjustment, Shelter, and Wage. The most frequent category is Food, accounting for approximately 52.2% of the transactions, followed by Recreation (19.6%) and Wage (27.3%).
+-   `Category`: There are six distinct categories in the financial data, including Education, Food, Recreation, RentAdjustment, Shelter, and Wage. The most frequent category is Food, accounting for approximately 52.2% of the transactions, followed by Recreation (19.6%) and Wage (27.3%).
 
 -   `Amount`: The amount variable represents the monetary value of each transaction. The mean amount is 20.05, indicating an average transaction value. The range of the amounts is from -1562.726 to 4096.526, with a wide distribution. The majority of the amounts fall within the range of -21.050 to 159.561.
 :::
@@ -321,7 +325,7 @@ Based on the statistics from the summary table, below are some useful insights:
     -   **timestamp** has a big value contains date and time both, which is not required for our anaylsis. So i will change it into Year-month bascially extract that data only from timestamp and save it.
 
     -   **category** is classified as `<chr  >`but categorical data,which has 4 different category. It need to be changed using `as.factor()`.
-    
+
     -   **amount** has decimal point upto 10. It will be rounded upto 2 for readability and easily computation.
 
 ::: panel-tabset
@@ -356,11 +360,11 @@ str(financial_new)
 ```
 :::
 
-
-- **Divide Category into new columns and count Total Amount for each category**
+-   **Divide Category into new columns and count Total Amount for each category**
 
 ::: panel-tabset
-## Category's 
+## Category's
+
 ```{r}
 financial_new <- financial_new %>%
   group_by(participantId, timestamp, category) %>%
@@ -369,33 +373,1254 @@ financial_new <- financial_new %>%
 
 ```
 
+::: callout-note
 The code chunk groups the data by participantId, timestamp, and category, calculates the sum of amount for each group, and then reshapes the data to have separate columns for each category, with the corresponding total_amount values. The resulting data frame is assigned to financial_new.The pivot_wider() function is used to reshape the data frame from a long format to a wide format. It takes the distinct category values as column names and populates the corresponding total_amount values for each participantId and timestamp combination.
+:::
 
 ## Checking the changes
+
 ```{r}
 DT::datatable(financial_new, class= "compact", filter='top')
 ```
 :::
 
-
 ### 1.2 Joining the Tables
 
-We have 2 dataset **resident_new** with columns `participantId`, `householdSize`, `haveKids`, `age`, `educationLevel`,`interestGroup`, `joviality`, `age_group` and **financial_new** with columns ``participantId`, `timestamp`,`Education` ,`Food`, `Recreation`, `Shelter`, `Wage`, `RentAdjustment`.
+We have 2 dataset **resident_new** with columns `participantId`, `householdSize`, `haveKids`, `age`, `educationLevel`,`interestGroup`, `joviality`, `age_group` and **financial_new** with columns `participantId`, `timestamp`,`Education` ,`Food`, `Recreation`, `Shelter`, `Wage`, `RentAdjustment`.
 
 ::: panel-tabset
-
 ## Join Table
+
 ```{r}
 
 resident_financial <- left_join(resident_new, financial_new, by = "participantId")
 
 ```
+
 The code chunk will create a new data frame resident_financial that combines the columns from both tables based on matching participantId values. The resulting data frame will include all the columns from both tables.
 
 ## Check Table
+
 ```{r}
 DT::datatable(resident_financial, class= "compact", filter='top')
 ```
 
+::: callout-note
+The new table **resident_financial** consists of the columns `participantId`, `householdSize`, `haveKids`, `age`, `educationLevel`,`interestGroup`, `joviality`, `age_group` `timestamp`, `Education` ,`Food`, `Recreation`, `Shelter`, `Wage`, `RentAdjustment`.
 :::
+:::
+
+-   **Checking Summary Statistics of resident_financial**
+
+::: panel-tabset
+## Structure
+
+It used to provide a compact and structured summary of the internal structure
+
+```{r}
+str(resident_financial)
+```
+
+There are a total of 10,691 rows and 14 variables.
+
+## Summary Statistics
+
+It provides a summary of the variables in the data frame, including their distribution, range, and missing values. This includes measures such as count, mean, standard deviation, minimum, maximum, and quartiles.
+
+```{r}
+Hmisc::describe(resident_financial)
+
+```
+
+From the output, there are zero missing values across all columns in **resident_financial**
+
+::: callout-tip
+The describe() function provides summary statistics for numerical variables by default. If we need to include categorical variables as well, it can set the fast = FALSE argument Hmisc::describe(resident_info, fast = FALSE)
+
+By setting fast = FALSE, the describe() function will calculate summary statistics for both numerical and categorical variables in the resident_info data frame.
+:::
+
+## Summary Table
+
+Creating detailed summary table
+
+```{r}
+df3 <- resident_financial %>% 
+  select(-starts_with('Q'), -starts_with('HQ')) %>%
+  mutate_if(is.integer, as.numeric) %>%
+  mutate_if(is.logical, as.numeric)
+
+Summary_Table <- df3 %>% select_if(is.numeric)
+
+print(dfSummary(Summary_Table, graph.magnif = 0.75), method = 'render')
+```
+:::
+
+::: {.callout-important collapse="true"}
+-   The dataset contains information on 10,691 participants. The householdSize variable indicates that the majority of households have 1 or 2 members, with proportions of 0.378 and 0.339, respectively.
+-   The variable haveKids shows that 28.2% of the participants have kids, while 71.8% do not.
+-   The age variable has a mean age of 39.13 years, with a range from 18 to 60. The distribution shows that the majority of participants are between 29 and 50 years old.
+-   The educationLevel variable indicates that the highest proportion of participants (48.3%) have a high school or college education, followed by 26% with a bachelor's degree and 19.1% with a graduate degree.
+-   The interestGroup variable represents the interest groups of the participants, with values ranging from A to J. The highest proportion of participants belongs to interest group J (11.1%), followed by groups E (10.8%) and H (10.5%).
+-   The joviality variable has a mean joviality score of 0.4686, with a range from 0.000204 to 0.999234. The distribution of joviality scores shows that the majority of participants have scores between 0.2 and 0.7.
+-   The dataset spans a time period from March 2022 to February 2023, with equal frequencies of observations in each month.
+-   The Education, Food, Recreation, Shelter, and Wage variables represent financial aspects. These variables have varying ranges and distributions, indicating different levels of spending or income for the participants.
+-   The RentAdjustment variable, with only 72 observations, indicates adjustments made to rental prices, ranging from 77.23 to 4809.28, with a mean of 763.
+:::
+
+-   **Doing some Univariate Visualization on all the columns on Unique dataset**
+
+::: panel-tabset
+## householdSize
+
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+
+plot_household_size <- ggplot(resident_new, aes(x = householdSize)) +
+  geom_bar(fill = "#69b3a2", color = "black") +
+  labs(x = "Household Size", y = "Count") +
+  ggtitle("Distribution of Household Size") +
+  theme_minimal()
+
+plotly_household_size <- ggplotly(plot_household_size) %>%
+  layout(
+    title = list(
+      text = "Distribution of Household Size",
+      x = 0.5
+    ),
+    xaxis = list(title = "Household Size"),
+    yaxis = list(title = "Count"),
+    plot_bgcolor = "#f5f5f5",
+    paper_bgcolor = "#f5f5f5",
+    font = list(color = "#333333")
+  )
+
+
+
+plotly_household_size
+
+```
+
+::: callout-note
+-   We are using resident_new table because it has the unique set of data for each participantID.
+-   The code chunk creates a bar plot (geom_bar) for the householdSize column using ggplot2. The bars are filled with #69b3a2 color and have black outlines. The plot is given axis labels, a title, and a minimal theme. The plot is then converted to an interactive plotly object
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Creating a bar plot for householdSize
+plot_household_size <- ggplot(resident_new, aes(x = householdSize)) +
+  geom_bar(fill = "#69b3a2", color = "black") +
+  labs(x = "Household Size", y = "Count") +
+  ggtitle("Distribution of Household Size") +
+  theme_minimal()
+
+# Converting the plot to an interactive plotly object
+plotly_household_size <- ggplotly(plot_household_size) %>%
+  layout(
+    title = list(
+      text = "Distribution of Household Size",
+      x = 0.5
+    ),
+    xaxis = list(title = "Household Size"),
+    yaxis = list(title = "Count"),
+    plot_bgcolor = "#f5f5f5",
+    paper_bgcolor = "#f5f5f5",
+    font = list(color = "#333333")
+  )
+
+# Display the interactive plot
+plotly_household_size
+
+
+```
+:::
+
+::: panel-tabset
+## HaveKids
+
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+
+
+plot_have_kids <- ggplot(resident_new, aes(x = factor(haveKids))) +
+  geom_bar(fill = c("#69b3a2", "#E45756"), color = "black") +
+  labs(x = "Have Kids", y = "Count") +
+  ggtitle("Distribution of Having Kids") +
+  scale_x_discrete(labels = c("No", "Yes")) +
+  theme_minimal()
+plotly_have_kids <- ggplotly(plot_have_kids) %>%
+  layout(
+    title = list(
+      text = "Distribution of Having Kids",
+      x = 0.5
+    ),
+    xaxis = list(title = "Have Kids"),
+    yaxis = list(title = "Count"),
+    plot_bgcolor = "#f5f5f5",
+    paper_bgcolor = "#f5f5f5",
+    font = list(color = "#333333")
+  )
+plotly_have_kids <- plotly_have_kids %>%
+  layout(
+    colorway = c("#69b3a2", "#E45756")
+  )
+plotly_have_kids
+
+```
+
+::: callout-note
+
+-   We are using resident_new table because it has the unique set of data for each participantID.
+-   The code chunk creates a bar plot (geom_bar) for the haveKids column using ggplot2. The bars are filled with two different colors (#69b3a2 and #E45756) to represent the categories "No" and "Yes" respectively. The plot is given axis labels, a title, and a minimal theme. The plot is then converted to an interactive plotly object.
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Creating a bar plot for haveKids
+plot_have_kids <- ggplot(resident_new, aes(x = factor(haveKids))) +
+  geom_bar(fill = c("#69b3a2", "#E45756"), color = "black") +
+  labs(x = "Have Kids", y = "Count") +
+  ggtitle("Distribution of Having Kids") +
+  scale_x_discrete(labels = c("No", "Yes")) +
+  theme_minimal()
+
+# Converting the plot to an interactive plotly object
+plotly_have_kids <- ggplotly(plot_have_kids) %>%
+  layout(
+    title = list(
+      text = "Distribution of Having Kids",
+      x = 0.5
+    ),
+    xaxis = list(title = "Have Kids"),
+    yaxis = list(title = "Count"),
+    plot_bgcolor = "#f5f5f5",
+    paper_bgcolor = "#f5f5f5",
+    font = list(color = "#333333")
+  )
+
+# Customize the bar colors
+plotly_have_kids <- plotly_have_kids %>%
+  layout(
+    colorway = c("#69b3a2", "#E45756")
+  )
+
+# Display the interactive plot
+plotly_have_kids
+
+```
+:::
+
+::: panel-tabset
+## Age
+
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+
+
+plot_age <- ggplot(resident_new, aes(x = age)) +
+  geom_histogram(binwidth = 5, fill = "lightblue", color = "black") +
+  labs(x = "Age", y = "Count") +
+  ggtitle("Distribution of Age")
+
+plotly_age <- ggplotly(plot_age) %>%
+  layout(
+    title = "Interactive Age Distribution",
+    xaxis = list(title = "Age"),
+    yaxis = list(title = "Count"),
+    hovermode = "closest",
+    showlegend = FALSE
+    
+  ) %>%
+  config(displayModeBar = TRUE)
+
+plotly_age
+
+
+```
+
+::: callout-note
+-   We are using resident_new table because it has the unique set of data for each participantID.
+-   The code chunk creates a histogram (geom_histogram) for the age column using ggplot2. The histogram bars are filled with a light blue color and outlined in black. The plot is given axis labels, a title, and converted to an interactive plotly object
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Creating a Histogram for age
+plot_age <- ggplot(resident_new, aes(x = age)) +
+  geom_histogram(binwidth = 5, fill = "lightblue", color = "black") +
+  labs(x = "Age", y = "Count") +
+  ggtitle("Distribution of Age")
+
+plotly_age <- ggplotly(plot_age) %>%
+  layout(
+    title = "Interactive Age Distribution",
+    xaxis = list(title = "Age"),
+    yaxis = list(title = "Count"),
+    hovermode = "closest",
+    showlegend = FALSE
+  ) %>%
+  config(displayModeBar = TRUE)
+
+# Display the interactive plot
+plotly_age
+
+
+```
+:::
+
+::: panel-tabset
+## Education & Interest
+
+```{r}
+#| echo: false
+#| fig-width: 4
+#| fig-height: 4
+
+
+plot_education_level <- ggplot(resident_new, aes(x = educationLevel, fill = educationLevel)) +
+  geom_bar() +
+  labs(x = "Education Level", y = "Count") +
+  ggtitle("Distribution of Education Level")
+
+plot_interest_group <- ggplot(resident_new, aes(x = interestGroup, fill = interestGroup)) +
+  geom_bar() +
+  labs(x = "Interest Group", y = "Count") +
+  ggtitle("Distribution of Interest Group")
+
+plotly_education_level <- ggplotly(plot_education_level)
+plotly_interest_group <- ggplotly(plot_interest_group)
+
+plotly_education_level 
+plotly_interest_group
+```
+
+::: callout-note
+-   We are using resident_new table because it has the unique set of data for each participantID.
+-`The code chunk creates two bar plots using ggplot2 for the columns educationLevel and interestGroup. Each bar represents a category in the respective column, and the bars are filled with colors corresponding to the category. The plots are given axis labels and titles. The ggplot objects are then converted to interactive plotly objects
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Creating a bar plot for EducationLevel & InterestGroup
+plot_education_level <- ggplot(resident_new, aes(x = educationLevel, fill = educationLevel)) +
+  geom_bar() +
+  labs(x = "Education Level", y = "Count") +
+  ggtitle("Distribution of Education Level")
+
+plot_interest_group <- ggplot(resident_new, aes(x = interestGroup, fill = interestGroup)) +
+  geom_bar() +
+  labs(x = "Interest Group", y = "Count") +
+  ggtitle("Distribution of Interest Group")
+
+# Convert plots to interactive plotly objects
+plotly_education_level <- ggplotly(plot_education_level)
+plotly_interest_group <- ggplotly(plot_interest_group)
+
+# Display the interactive plot
+plotly_education_level 
+plotly_interest_group
+
+```
+:::
+
+::: panel-tabset
+## Joviality
+
+```{r}
+#| echo: false
+#| message: false
+
+
+plot_joviality_dot <- ggplot(resident_new, aes(x = joviality)) +
+  geom_dotplot(stackratio = 1.2,stackdir = "up",fill = "#1696d2", color = 'red',dotsize = .3) +
+  labs(title = "Joviality", x = NULL, y = NULL) +
+  theme(axis.text.y = element_blank(), 
+        panel.grid.major = element_blank()
+        )
+
+plot_joviality_dot
+
+```
+
+::: callout-note
+-   We are using resident_new table because it has the unique set of data for each participantID.
+-   The code chunk creates a dotplot using ggplot2 for the column joviality. Each dot represents a data point in the column, and the dots are stacked vertically with a ratio of 1.2 and a direction of upward. The dots are filled with a light blue color and have a red border.
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Creating a dot plot using geom_dotplot
+plot_joviality_dot <- ggplot(resident_new, aes(x = joviality)) +
+  geom_dotplot(stackratio = 1.2,stackdir = "up",fill = "#1696d2", color = 'red',dotsize = .3) +
+  labs(title = "Joviality", x = NULL, y = NULL) +
+  theme(axis.text.y = element_blank(), 
+        panel.grid.major = element_blank()
+        )
+
+# Display the dot plot
+plot_joviality_dot
+
+```
+:::
+
+## 2. Visualization
+
+### 2.1 Comparing householdSize with Age-groups
+
+::: panel-tabset
+## Householdsize VS Age_group
+
+```{r}
+#| echo: false
+
+count_table <- resident_financial %>%
+  count(age_group, householdSize)
+custom_colors <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2")
+
+p <- ggplot(count_table, aes(x = age_group, y = n, fill = householdSize)) +
+  geom_col(position = "dodge", color = "white") +
+  scale_fill_manual(values = custom_colors) +
+  labs(x = "Age Group", y = "Count", fill = "Household Size") +
+  ggtitle("Distribution of Household Size within Age Groups") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"))
+plotly_plot <- ggplotly(p)
+
+plotly_plot <- plotly_plot %>% 
+  layout(hoverlabel = list(bgcolor = "white",
+                           font = list(color = "black",
+                                       family = "Arial, sans-serif"),
+                           align = "auto",
+                           namelength = -1,
+                           bordercolor = "black"))
+
+plotly_plot <- plotly_plot %>% 
+  layout(legend = list(
+    title = list(text = "Household Size"),
+    font = list(family = "Arial, sans-serif", size = 12),
+    bgcolor = "white",
+    bordercolor = "black",
+    borderwidth = 1
+  ))
+plotly_plot <- plotly_plot %>% 
+  layout(xaxis = list(title = "Age Group", tickfont = list(family = "Arial, sans-serif", size = 12)),
+         yaxis = list(title = "Count of unique resident", tickfont = list(family = "Arial, sans-serif", size = 12)))
+plotly_plot
+
+```
+
+::: callout-note
+-   The above plot uses the columns householdsize and age_group, and understanding the relationship between them by comparing the heights of the bars within each age group, we can observe the relative proportions of different household sizes. For example, for age_group 40-50yrs has more number of residents of household size 1 .
+
+-   Below is small summary of the code
+
+    -  The count_table is created by counting the occurrences of each combination of age_group and householdSize in the resident_financial dataframe.
+
+    -   Custom colors are defined using the scale_fill_manual function, providing a vector of color codes (custom_colors) to be used for filling the bars in the plot.
+
+    -   The plot is created using ggplot with count_table as the data. The geom_col function is used to create a bar plot with dodged bars for each age_group, with the householdSize determining the fill color.
+
+    -   Additional customizations are applied, such as setting the x-axis label, y-axis label, plot title, and theme.
+
+    -   The ggplot plot is then converted to an interactive plot using ggplotly, which enables interactive features such as hover tooltips and zooming.
+
+    -   Various customizations are applied to the interactive plot, including customizing the hover label appearance, legend labels, and axis labels and tick fonts.
+
+    -   Finally, the interactive plot is displayed.
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Calculating count for each combination of age_group and householdSize
+count_table <- resident_financial %>%
+  count(age_group, householdSize)
+
+# Using custom colors
+custom_colors <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2")
+
+# Plotting the columns
+p <- ggplot(count_table, aes(x = age_group, y = n, fill = householdSize)) +
+  geom_col(position = "dodge", color = "white") +
+  scale_fill_manual(values = custom_colors) +
+  labs(x = "Age Group", y = "Count", fill = "Household Size") +
+  ggtitle("Distribution of Household Size within Age Groups") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16, face = "bold"))
+
+# Converting ggplot to interactive plot using ggplotly
+plotly_plot <- ggplotly(p)
+
+# Using tooltip labels
+plotly_plot <- plotly_plot %>% 
+  layout(hoverlabel = list(bgcolor = "white",
+                           font = list(color = "black",
+                                       family = "Arial, sans-serif"),
+                           align = "auto",
+                           namelength = -1,
+                           bordercolor = "black"))
+
+# Customizing legend labels
+plotly_plot <- plotly_plot %>% 
+  layout(legend = list(
+    title = list(text = "Household Size"),
+    font = list(family = "Arial, sans-serif", size = 12),
+    bgcolor = "white",
+    bordercolor = "black",
+    borderwidth = 1
+  ))
+
+# Customizing axis labels and tick font
+plotly_plot <- plotly_plot %>% 
+  layout(xaxis = list(title = "Age Group", tickfont = list(family = "Arial, sans-serif", size = 12)),
+         yaxis = list(title = "Count of unique resident", tickfont = list(family = "Arial, sans-serif", size = 12)))
+
+# Displaying the interactive plot
+plotly_plot
+
+```
+:::
+
+### 2.2 Comparing Education with Age using Boxplot
+
+::: panel-tabset
+## Education VS Age
+
+```{r}
+#| echo: false
+
+plotly_plot <- ggplotly(
+  ggplot(data = resident_financial, aes(x = educationLevel, y = age, fill = educationLevel)) + 
+    ggtitle("Boxplot of Educationlevel VS  Age") + 
+    labs(x = "Education", y = "Age") +
+    geom_boxplot(alpha = 0.7, col = 'black') + 
+    scale_y_continuous(breaks=seq(0 , max(resident_financial[,"age"]), 5))
+)
+plotly_plot <- plotly_plot %>%
+  layout(
+    hoverlabel = list(bgcolor = "white", font = list(family = "Arial", size = 12, color = "black")),
+    legend = list(font = list(family = "Arial", size = 12, color = "black")),
+    xaxis = list(title = "Race", tickfont = list(family = "Arial", size = 12, color = "black")),
+    yaxis = list(title = "Age", tickfont = list(family = "Arial", size = 12, color = "black")),
+    plot_bgcolor = "white"
+  )
+plotly_plot
+
+
+```
+
+::: {.callout-note}
+The code chunk plot a boxplot comparing the age distribution across different education levels. Each box represents the median and quartiles of age for each education level. The fill color represents the education level. The plot provides a visual summary of the age distribution and potential differences between education levels.
+
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Boxplot of Educationlevel and Age
+plotly_plot <- ggplotly(
+  ggplot(data = resident_financial, aes(x = educationLevel, y = age, fill = educationLevel)) + 
+    ggtitle("Boxplot of Educationlevel VS  Age") + 
+    labs(x = "Education", y = "Age") +
+    geom_boxplot(alpha = 0.7, col = 'black') + 
+    scale_y_continuous(breaks=seq(0 , max(resident_financial[,"age"]), 5))
+)
+
+# Customizing the interactive plot
+plotly_plot <- plotly_plot %>%
+  layout(
+    hoverlabel = list(bgcolor = "white", font = list(family = "Arial", size = 12, color = "black")),
+    legend = list(font = list(family = "Arial", size = 12, color = "black")),
+    xaxis = list(title = "Race", tickfont = list(family = "Arial", size = 12, color = "black")),
+    yaxis = list(title = "Age", tickfont = list(family = "Arial", size = 12, color = "black")),
+    plot_bgcolor = "white"
+  )
+
+# Display the interactive plot
+plotly_plot
+
+
+
+```
+:::
+
+### 2.3 Count of unique participants for each combination of education and haveKids
+
+::: panel-tabset
+## EducationLevel Vs haveKids
+
+```{r}
+#| echo: false
+participant_count <- resident_financial %>%
+  group_by(educationLevel, haveKids) %>%
+  summarise(count = n_distinct(participantId), .groups = "keep")
+
+
+barplot_chart <- ggplot(data = participant_count, aes(x = educationLevel, y = count, fill = haveKids)) +
+  ggtitle("Count of Unique Participants by Education Level and Have Kids") +
+  labs(x = "Education Level", y = "Number of Participants") +
+  geom_bar(stat = "identity", alpha = 0.7, col = 'black') +
+  facet_grid(. ~ haveKids) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+plotly_chart <- ggplotly(barplot_chart)
+plotly_chart
+
+```
+
+::: callout-note
+The code chunk makes a stacked bar chart that visually represents the count of unique participants based on their education level and whether they have kids or not.The n_distinct function is then applied to the participantId column to calculate the count of unique participants for each group.The x-axis represents the education levels, the y-axis represents the number of participants, and the fill color indicates whether the participants have kids or not. The chart is faceted by the haveKids variable, allowing for easy comparison between the two groups.By examining the chart, we can identify patterns and trends in participant distribution. For example, 355 participants doesnt have kids who are having education level `HighSchoolorCollege` , likewise 170 participants have kids who are doing the same edcutionlevel.
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+# Count of unique participants for each combination of educationLevel and haveKids
+participant_count <- resident_financial %>%
+  group_by(educationLevel, haveKids) %>%
+  summarise(count = n_distinct(participantId), .groups = "keep")
+
+# Creating the stacked bar chart
+barplot_chart <- ggplot(data = participant_count, aes(x = educationLevel, y = count, fill = haveKids)) +
+  ggtitle("Count of Unique Participants by Education Level and Have Kids") +
+  labs(x = "Education Level", y = "Number of Participants") +
+  geom_bar(stat = "identity", alpha = 0.7, col = 'black') +
+  facet_grid(. ~ haveKids) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+plotly_chart <- ggplotly(barplot_chart)
+plotly_chart
+```
+:::
+
+### 2.4 Analysis on EducationLevel and Totalwage
+
+-   **Create Sum_wages table that will have id, EducationLevel, total wage**
+
+::: panel-tabset
+
+## Sum_wages
+```{r}
+sum_wages <- resident_financial %>%
+  group_by(participantId, educationLevel) %>%
+  summarise(total_wages = sum(Wage)) %>%
+  ungroup()
+
+```
+
+
+## Check
+
+```{r}
+# Display the data table
+DT::datatable(sum_wages, class= "compact", filter='top')
+
+```
+
+:::
+
+-   **Violin Plot- EducationLevel VS TotalWage**
+
+::: panel-tabset
+## Violin
+
+```{r}
+#| echo: false
+# Create the violin plot
+violin_plot <- ggplot(sum_wages, aes(x = educationLevel, y = total_wages, fill = educationLevel)) +
+  geom_violin(scale = "width", trim = FALSE) +
+  scale_fill_discrete() +
+  labs(title = "Total Wages Distribution by Education Level",
+       x = "Education Level",
+       y = "Total Wages") +
+  theme_minimal()
+
+# Convert the ggplot object to an interactive plotly object
+interactive_plot <- ggplotly(violin_plot)
+
+# Display the interactive plot
+interactive_plot
+
+```
+
+::: callout-note
+The violin plot shows the spread and density of total wages for each education level category. The width of the violins represents the density, with wider areas indicating higher frequency of data points. The violins are grouped by education level, allowing for easy comparison of wage distributions between different education levels. Overall, the interactive violin plot provides a clear visualization of the distribution of total wages across education levels. It helps identify patterns, trends, and potential differences in wages based on education level. Further analysis can be performed to explore the relationships between education level, total wages, and other relevant variables.
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+
+# Violin plot between EducationLevel and Totalwage
+violin_plot <- ggplot(sum_wages, aes(x = educationLevel, y = total_wages, fill = educationLevel)) +
+  geom_violin(scale = "width", trim = FALSE) +
+  scale_fill_discrete() +
+  labs(title = "Total Wages Distribution by Education Level",
+       x = "Education Level",
+       y = "Total Wages") +
+  theme_minimal()
+
+# Converting the ggplot object to an interactive plotly object and displaying it
+interactive_plot <- ggplotly(violin_plot)
+
+interactive_plot
+```
+:::
+
+-   **Anova test between EducationLevel and TotalWages** 
+
+::: panel-tabset
+
+## Anova
+
+```{r}
+#| echo: false
+
+set.seed(1234)
+
+ggbetweenstats(data = sum_wages,
+               x = educationLevel,
+               y = total_wages,
+               type = "np",
+               mean.ci = TRUE,
+               pairwise.comparisons = TRUE,
+               pairwise.display = "s",
+               p.adjust.method = "fdr",
+               messages = FALSE
+) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 12),
+        panel.grid.major = element_line(color = "lightgray"),
+        panel.grid.minor = element_blank()
+      
+)
+```
+
+::: callout-note
+-   The code chunk conducts a non-parametric analysis of variance (ANOVA) test to examine the relationship between education level (independent variable) and total wages (dependent variable).
+
+-   The ANOVA test assesses whether there are statistically significant differences in the mean total wages across different education levels. The p-value is a measure of the strength of evidence against the null hypothesis of no difference in means. In this case, since the p-value is below the significance level of 0.05, we can conclude that there is strong evidence to reject the null hypothesis.
+
+-   Overall, the data analysis indicates that education level has a significant effect on total wages.
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+set.seed(1234)
+
+ggbetweenstats(data = sum_wages,
+               x = educationLevel,
+               y = total_wages,
+               type = "np",
+               mean.ci = TRUE,
+               pairwise.comparisons = TRUE,
+               pairwise.display = "s",
+               p.adjust.method = "fdr",
+               messages = FALSE
+) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 12),
+        panel.grid.major = element_line(color = "lightgray"),
+        panel.grid.minor = element_blank()
+      
+)
+```
+
+:::
+
+### 2.5 Age Group vs Joviality
+
+::: panel-tabset
+## Joviality vs Age_group
+
+```{r}
+#| echo: false
+# Density ridge plot between Joviality and age_group
+ggplot(resident_financial, aes(x = joviality, y = age_group,fill = age_group,color = age_group)) +
+geom_density_ridges(bandwidth = .05, alpha = .6) +
+scale_x_continuous( breaks = scales::pretty_breaks(n = 5)) +
+labs(title = " Joviality values Across Age Groups",
+) +
+theme(legend.position = "none",axis.title.y = element_blank(),panel.grid.major = element_blank(),plot.background = element_rect(fill = "#e763fa", color = "#C7BAA7"),
+  plot.title = element_text(size = 14, face = "bold", color = "#333333"),  
+) +
+theme_minimal() -> plot
+# Displaying the plot
+plot
+
+```
+
+::: callout-note
+The x axis represents the joviality values, while the y axis represents the age groups. The fill and color aesthetics are set to age_group, resulting in the ridgelines being filled and colored based on the different age groups. The density ridgeline plot is created using the geom_density_ridges function, with a specified bandwidth of 0.05 and an alpha value of 0.6 to control the transparency of the ridgelines. The x-axis scale is adjusted using scale_x\_continuous to show tick marks with evenly spaced values.From the plot, it seems that Joviality and age_group has not that much in common to analyze.
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Density ridge plot between Joviality and age_group
+ggplot(resident_financial, aes(x = joviality, y = age_group,fill = age_group,color = age_group)) +
+geom_density_ridges(bandwidth = .05, alpha = .6) +
+scale_x_continuous( breaks = scales::pretty_breaks(n = 5)) +
+labs(title = " Joviality values Across Age Groups",
+) +
+theme(legend.position = "none",axis.title.y = element_blank(),panel.grid.major = element_blank(),plot.background = element_rect(fill = "#e763fa", color = "#C7BAA7"),
+  plot.title = element_text(size = 14, face = "bold", color = "#333333"),  
+) +
+theme_minimal() -> plot
+# Displaying the plot
+plot
+
+```
+:::
+
+-   **Anova test for Jovality vs Age_group** 
+
+
+::: panel-tabset
+
+## Anova test
+
+```{r}
+#| echo: false
+set.seed(1234)
+
+ggbetweenstats(data = resident_new,
+               x = age_group,
+               y = joviality,
+               type = "np",
+               mean.ci = TRUE,
+               pairwise.comparisons = TRUE,
+               pairwise.display = "s",
+               p.adjust.method = "fdr",
+               messages = FALSE
+) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 12),
+        panel.grid.major = element_line(color = "lightgray"),
+        panel.grid.minor = element_blank()
+      
+)
+
+```
+
+::: callout-note
+-   The p-value of 0.08 suggests that there is no significant evidence to reject the null hypothesis that there is no difference in Joviality across different age groups. This may indicates that there might be a trend or some degree of association between Joviality and age_group, but it does not reach the level of statistical significance.
+
+-   Therefore, based on this analysis, we do not have sufficient evidence to conclude that there is a significant relationship between Joviality and age_group. Further investigations or a larger sample size might be necessary to explore the potential relationship between these variables in more detail.
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+set.seed(1234)
+
+ggbetweenstats(data = resident_new,
+               x = age_group,
+               y = joviality,
+               type = "np",
+               mean.ci = TRUE,
+               pairwise.comparisons = TRUE,
+               pairwise.display = "s",
+               p.adjust.method = "fdr",
+               messages = FALSE
+) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text = element_text(size = 12),
+        panel.grid.major = element_line(color = "lightgray"),
+        panel.grid.minor = element_blank()
+      
+)
+
+```
+
+:::
+
+### 2.6 Relationship of HeatMap on various Coulmns
+
+```{r}
+# Calculate correlation matrix
+cor_matrix <- cor(resident_financial[, c("age", "joviality", "Education", "Food", "Recreation", "Shelter", "Wage", "RentAdjustment")])
+
+# Print correlation matrix
+print(cor_matrix)
+```
+
+
+::: panel-tabset
+
+## Heat Map
+```{r}
+#| echo: false
+
+cor_matrix <- cor(resident_financial[, c("age", "joviality", "Food", "Wage")])
+
+cor_matrix_long <- melt(cor_matrix)
+
+heatmap_plot <- ggplot(data = cor_matrix_long, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "white", size = 0.2) +
+  scale_fill_gradient(low = "#4D79FF", high = "#FF4D4D") +
+  labs(x = "", y = "", title = "Correlation Matrix", fill = "Correlation") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12),
+        axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5, hjust = 1,face = "bold"),
+        axis.text = element_text(size = 12,face = "bold"),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12))
+
+plotly_obj <- ggplotly(heatmap_plot) %>%
+  layout(
+    title = "Correlation Matrix",
+    hovermode = "closest",
+    xaxis = list(tickfont = list(size = 10)),
+    yaxis = list(tickfont = list(size = 10)),
+    legend = list(font = list(10)),
+    margin = list(l = 80, r = 80, t = 80, b = 80),
+    hoverlabel = list(bgcolor = "#FFF", font = list(size = 10))
+  )
+plotly_obj
+
+```
+
+::: {.callout-note}
+
+-   Based on the correlation analysis conducted, no significant correlations were observed between these variables-  Rent Adjustment, Shelter, Recreation, and Education and any of the other variables in the dataset. Therefore, in order to provide a comprehensive overview of the correlations, I  have decided not to plot these variables in the correlation heatmap.
+
+-   It is important to note that the lack of observed correlations does not necessarily imply that these variables are unrelated to the others. Other types of relationships or non-linear associations might exist, which could be explored further through additional analysis or modelling techniques.
+
+-   For the variables that were included in the correlation plot, the following correlations were identified:
+
+-   Age and Joviality:
+    -   There is a weak negative correlation between age and joviality (-0.070), indicating that as age increases, joviality tends to decrease slightly.
+
+-   Age and Food:
+
+   -There is a weak positive correlation between age and food (0.036), suggesting that as age increases, food consumption tends to increase slightly.
+-   Joviality and Food:
+
+    -   There is a moderate negative correlation between joviality and food (-0.486), indicating that as joviality increases, food consumption tends to decrease.
+-   Food and Wage:
+
+      -   There is a weak positive correlation between food and wage (0.133), suggesting that as food consumption increases, wage tends to increase slightly.
+These correlations provide insights into the relationships between these variables and can guide further analysis and decision-making within our project.
+
+:::
+
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Calculate correlation matrix on realted columns
+cor_matrix <- cor(resident_financial[, c("age", "joviality", "Food", "Wage")])
+
+# Reshaping the correlation matrix to long format
+cor_matrix_long <- melt(cor_matrix)
+
+# Creating a heatmap
+heatmap_plot <- ggplot(data = cor_matrix_long, aes(x = Var2, y = Var1, fill = value)) +
+  geom_tile(color = "white", size = 0.2) +
+  scale_fill_gradient(low = "#4D79FF", high = "#FF4D4D") +
+  labs(x = "", y = "", title = "Correlation Matrix", fill = "Correlation") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 12),
+        axis.text.x = element_text(size = 12, angle = 90, vjust = 0.5, hjust = 1,face = "bold"),
+        axis.text = element_text(size = 12,face = "bold"),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12))
+
+
+# Converting ggplot object to plotly object
+plotly_obj <- ggplotly(heatmap_plot) %>%
+  layout(
+    title = "Correlation Matrix",
+    hovermode = "closest",
+    xaxis = list(tickfont = list(size = 10)),
+    yaxis = list(tickfont = list(size = 10)),
+    legend = list(font = list(10)),
+    margin = list(l = 80, r = 80, t = 80, b = 80),
+    hoverlabel = list(bgcolor = "#FFF", font = list(size = 10))
+  )
+
+# Display the heatmap
+plotly_obj
+
+```
+
+:::
+
+
+
+### 2.7 Relationship between EducationLevel and TotalAmount 
+
+- **Calculating Total Amount for each ParticipantID**
+
+:::  panel-tabset
+
+## Total Amount
+```{r}
+total_amount <- resident_financial %>%
+  group_by(participantId, educationLevel) %>%
+  summarise(totalAmount = sum(Education + Shelter + Food + Wage + Recreation, na.rm = TRUE) - sum(RentAdjustment, na.rm = TRUE),
+            .groups = "drop")
+
+```
+
+
+## DataTable
+
+```{r}
+DT::datatable(total_amount, class= "compact", filter='top')
+
+```
+
+:::
+
+-   **Density Plot between EducationLevel and TotalAmount**
+
+::: panel-tabset
+
+## Density Plot
+```{r}
+#| echo: false
+
+plot <- ggplot(total_amount, aes(x = totalAmount, fill = educationLevel)) +
+  geom_density(alpha = 0.4) +
+  labs(title = "Salary Distribution by Education Level") +
+  scale_x_continuous(
+    breaks = seq(25000, 200000, 25000),
+    limits = c(25000, 200000)
+  ) +
+  ylab("Density") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 10),
+    axis.text.y = element_text(size = 10),
+    legend.position = "right"
+  )
+
+plotly_chart <- ggplotly(plot)
+
+plotly_chart
+```
+
+::: {.callout-note}
+
+-   The density plot  provides insights into the distribution of total savings among different education levels. The x-axis represents the total amount of savings, while the y-axis represents the density of participants at each savings level.
+
+-   From the plot, it can be observed that individuals with a bachelor's degree have a higher concentration of savings compared to other education levels. The density curve for the bachelor's education level peaks at a higher savings amount, indicating that a significant proportion of participants with a bachelor's degree have accumulated more savings.
+
+-   On the other hand, participants with lower education levels, such as high school or below, exhibit a lower density of savings. The density curve for these education levels shows a peak at lower savings amounts, suggesting that a majority of participants with lower education levels have savings below 50000.
+
+-   This analysis suggests a positive correlation between education level and savings, with higher education levels generally associated with higher savings. It highlights the potential financial benefits of pursuing higher education, as individuals with higher education levels tend to accumulate more savings over time.
+
+:::
+
+## Code
+
+```{r}
+#| eval: false
+#| fig-width: 4
+#| fig-height: 4
+
+# Creating the Density Plot
+plot <- ggplot(total_amount, aes(x = totalAmount, fill = educationLevel)) +
+  geom_density(alpha = 0.4) +
+  labs(title = "Salary Distribution by Education Level") +
+  scale_x_continuous(
+    breaks = seq(25000, 200000, 25000),  # Setting the range
+    limits = c(25000, 200000)
+  ) +
+  ylab("Density") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 10),
+    axis.text.y = element_text(size = 10),
+    legend.position = "right"
+  )
+# Plotting the interactive density plot
+plotly_chart <- ggplotly(plot)
+
+plotly_chart
+```
+
+:::
+
+
+
+
+## **3. Limitations and Recommendations**
+-   **Limitations:**
+
+::: {.callout-note}
+
+-   Limited variables: The analysis focuses on a specific set of variables and may not capture the full complexity of the relationship between household size and age group. Other relevant variables that could influence the relationship may not have been considered.
+
+-   Data quality: The analysis assumes that the data used for the plot is accurate and representative. Any data errors, missing values, or biases in the data could impact the validity of the conclusions drawn.
+
+-   Generalization: The findings and conclusions based on the analysis may not be generalizable to a larger population or different contexts. The analysis is specific to the dataset and participants included, and the results may not hold true for other populations or settings.
+
+
+:::
+
+   
+-   **Recommendations:**
+
+::: {.callout-note}
+
+-   Include additional variables: To gain a more comprehensive understanding of the relationship between household size and age group, it is recommended to consider other relevant variables such as income, occupation, or geographic location. These variables can provide additional insights and help uncover underlying factors influencing the relationship.
+
+-   Statistical tests: While visualizations provide initial insights, it is advisable to conduct statistical tests to determine the significance of relationships. Hypothesis testing, regression analysis, or other appropriate statistical methods can provide more robust evidence and quantify the strength of relationships.
+
+-   Data validation: It is important to ensure the accuracy and quality of the data used for analysis. Conducting data validation checks, addressing missing values, and verifying the representativeness of the dataset can enhance the reliability of the findings.
+
+-   Consider diverse samples: To improve generalizability, it is recommended to include a diverse sample of participants from different demographics, socioeconomic backgrounds, and geographical locations. This can help capture variations and identify potential interactions between variables.
+
+-   Longitudinal analysis: Analyzing data over time can provide insights into trends and changes in the relationship between household size and age group. Longitudinal analysis can help identify patterns and determine the stability of relationships over time.
+
+-   Interpretation caution: When interpreting the findings, it is important to consider the limitations of the analysis and acknowledge potential confounding variables or alternative explanations. Drawing cautious and nuanced conclusions can prevent over generalization and ensure a more accurate understanding of the relationship between household size and age group.
+
+:::
+
+    
+
+
+
+## **Appendix**
+
+- **Participants Table:**
+
+::: {.callout-tip}
+
+
+- The Participants table contains information about the participants involved in the study. It provides details such as participant IDs, household size, presence of children, age, education level, primary interest group, and joviality level.
+
+    -   participantId (nominal): This column represents the unique ID assigned to each participant. It serves as a unique identifier for each individual.
+
+    -   householdSize (integer): This column indicates the number of people in the participant's household. The values can be 1, 2, or 3, representing different household sizes.
+
+    -   haveKids (boolean): This column specifies whether there are children living in the participant's household. The values can be True or False, indicating the presence or absence of children, respectively.
+
+    -   age (integer): This column records the age of each participant in years at the start of the study. It provides information about the age distribution of the participants.
+
+    -   educationLevel (string factor): This column represents the participant's education level. It is categorized into four levels: "Low," "HighSchoolOrCollege," "Bachelors," and "Graduate." It captures the educational background of the participants.
+
+    -   interestGroup (char): This column denotes the participant's stated primary interest group. It is represented by a single character, ranging from "A" to "J." Each character corresponds to a specific interest group to which the participant belongs.
+
+    -   joviality (float): This column contains a numeric value ranging from 0 to 1, indicating the participant's overall happiness level at the start of the study. It provides an insight into the emotional well-being of the participants.
+
+:::
+
+
+-   **Financial Journal Table:**
+
+::: {.callout-tip}
+-   The Financial Journal table contains transactional details of participants' expenses. It records information such as participant IDs, timestamps, expense categories, and transaction amounts.
+
+    -   participantId (integer): This column serves as a unique ID corresponding to the participant affected by the financial transaction. It helps establish a link between the participants and their financial records.
+
+    -   timestamp (datetime): This column records the time when the check-in for the expense was logged. It provides a temporal reference for each financial transaction.
+
+    -   category (string factor): This column describes the expense category associated with each transaction. It is categorized into several categories: "Education," "Food," "Recreation," "RentAdjustment," "Shelter," and "Wage." It classifies the type of expense incurred by the participants.
+
+    -   amount (double): This column represents the amount of the transaction for each financial entry. It captures the numerical value of the expense incurred by the participants.
+:::
+
+These two tables, Participants and Financial Journal, provide crucial information about the participants' demographic details, and financial transactions. 
+
+
 
