@@ -579,7 +579,6 @@ plotly_have_kids
 ```
 
 ::: callout-note
-
 -   We are using resident_new table because it has the unique set of data for each participantID.
 -   The code chunk creates a bar plot (geom_bar) for the haveKids column using ggplot2. The bars are filled with two different colors (#69b3a2 and #E45756) to represent the categories "No" and "Yes" respectively. The plot is given axis labels, a title, and a minimal theme. The plot is then converted to an interactive plotly object.
 :::
@@ -717,8 +716,7 @@ plotly_interest_group
 ```
 
 ::: callout-note
--   We are using resident_new table because it has the unique set of data for each participantID.
--`The code chunk creates two bar plots using ggplot2 for the columns educationLevel and interestGroup. Each bar represents a category in the respective column, and the bars are filled with colors corresponding to the category. The plots are given axis labels and titles. The ggplot objects are then converted to interactive plotly objects
+-   We are using resident_new table because it has the unique set of data for each participantID. -\`The code chunk creates two bar plots using ggplot2 for the columns educationLevel and interestGroup. Each bar represents a category in the respective column, and the bars are filled with colors corresponding to the category. The plots are given axis labels and titles. The ggplot objects are then converted to interactive plotly objects
 :::
 
 ## Code
@@ -846,7 +844,7 @@ plotly_plot
 
 -   Below is small summary of the code
 
-    -  The count_table is created by counting the occurrences of each combination of age_group and householdSize in the resident_financial dataframe.
+    -   The count_table is created by counting the occurrences of each combination of age_group and householdSize in the resident_financial dataframe.
 
     -   Custom colors are defined using the scale_fill_manual function, providing a vector of color codes (custom_colors) to be used for filling the bars in the plot.
 
@@ -945,9 +943,8 @@ plotly_plot
 
 ```
 
-::: {.callout-note}
+::: callout-note
 The code chunk plot a boxplot comparing the age distribution across different education levels. Each box represents the median and quartiles of age for each education level. The fill color represents the education level. The plot provides a visual summary of the age distribution and potential differences between education levels.
-
 :::
 
 ## Code
@@ -1043,8 +1040,8 @@ plotly_chart
 -   **Create Sum_wages table that will have id, EducationLevel, total wage**
 
 ::: panel-tabset
-
 ## Sum_wages
+
 ```{r}
 sum_wages <- resident_financial %>%
   group_by(participantId, educationLevel) %>%
@@ -1053,7 +1050,6 @@ sum_wages <- resident_financial %>%
 
 ```
 
-
 ## Check
 
 ```{r}
@@ -1061,7 +1057,6 @@ sum_wages <- resident_financial %>%
 DT::datatable(sum_wages, class= "compact", filter='top')
 
 ```
-
 :::
 
 -   **Violin Plot- EducationLevel VS TotalWage**
@@ -1116,10 +1111,9 @@ interactive_plot
 ```
 :::
 
--   **Anova test between EducationLevel and TotalWages** 
+-   **Anova test between EducationLevel and TotalWages**
 
 ::: panel-tabset
-
 ## Anova
 
 ```{r}
@@ -1191,7 +1185,6 @@ ggbetweenstats(data = sum_wages,
       
 )
 ```
-
 :::
 
 ### 2.5 Age Group vs Joviality
@@ -1243,11 +1236,9 @@ plot
 ```
 :::
 
--   **Anova test for Jovality vs Age_group** 
-
+-   **Anova test for Jovality vs Age_group**
 
 ::: panel-tabset
-
 ## Anova test
 
 ```{r}
@@ -1318,7 +1309,6 @@ ggbetweenstats(data = resident_new,
 )
 
 ```
-
 :::
 
 ### 2.6 Relationship of HeatMap on various Coulmns
@@ -1331,10 +1321,9 @@ cor_matrix <- cor(resident_financial[, c("age", "joviality", "Education", "Food"
 print(cor_matrix)
 ```
 
-
 ::: panel-tabset
-
 ## Heat Map
+
 ```{r}
 #| echo: false
 
@@ -1367,30 +1356,29 @@ plotly_obj
 
 ```
 
-::: {.callout-note}
-
--   Based on the correlation analysis conducted, no significant correlations were observed between these variables-  Rent Adjustment, Shelter, Recreation, and Education and any of the other variables in the dataset. Therefore, in order to provide a comprehensive overview of the correlations, I  have decided not to plot these variables in the correlation heatmap.
+::: callout-note
+-   Based on the correlation analysis conducted, no significant correlations were observed between these variables- Rent Adjustment, Shelter, Recreation, and Education and any of the other variables in the dataset. Therefore, in order to provide a comprehensive overview of the correlations, I have decided not to plot these variables in the correlation heatmap.
 
 -   It is important to note that the lack of observed correlations does not necessarily imply that these variables are unrelated to the others. Other types of relationships or non-linear associations might exist, which could be explored further through additional analysis or modelling techniques.
 
 -   For the variables that were included in the correlation plot, the following correlations were identified:
 
 -   Age and Joviality:
+
     -   There is a weak negative correlation between age and joviality (-0.070), indicating that as age increases, joviality tends to decrease slightly.
 
 -   Age and Food:
 
-   -There is a weak positive correlation between age and food (0.036), suggesting that as age increases, food consumption tends to increase slightly.
--   Joviality and Food:
+-There is a weak positive correlation between age and food (0.036), suggesting that as age increases, food consumption tends to increase slightly. - Joviality and Food:
 
-    -   There is a moderate negative correlation between joviality and food (-0.486), indicating that as joviality increases, food consumption tends to decrease.
+```         
+-   There is a moderate negative correlation between joviality and food (-0.486), indicating that as joviality increases, food consumption tends to decrease.
+```
+
 -   Food and Wage:
 
-      -   There is a weak positive correlation between food and wage (0.133), suggesting that as food consumption increases, wage tends to increase slightly.
-These correlations provide insights into the relationships between these variables and can guide further analysis and decision-making within our project.
-
+    -   There is a weak positive correlation between food and wage (0.133), suggesting that as food consumption increases, wage tends to increase slightly. These correlations provide insights into the relationships between these variables and can guide further analysis and decision-making within our project.
 :::
-
 
 ## Code
 
@@ -1434,18 +1422,15 @@ plotly_obj <- ggplotly(heatmap_plot) %>%
 plotly_obj
 
 ```
-
 :::
 
+### 2.7 Relationship between EducationLevel and TotalAmount
 
+-   **Calculating Total Amount for each ParticipantID**
 
-### 2.7 Relationship between EducationLevel and TotalAmount 
-
-- **Calculating Total Amount for each ParticipantID**
-
-:::  panel-tabset
-
+::: panel-tabset
 ## Total Amount
+
 ```{r}
 total_amount <- resident_financial %>%
   group_by(participantId, educationLevel) %>%
@@ -1454,21 +1439,19 @@ total_amount <- resident_financial %>%
 
 ```
 
-
 ## DataTable
 
 ```{r}
 DT::datatable(total_amount, class= "compact", filter='top')
 
 ```
-
 :::
 
 -   **Density Plot between EducationLevel and TotalAmount**
 
 ::: panel-tabset
-
 ## Density Plot
+
 ```{r}
 #| echo: false
 
@@ -1495,16 +1478,14 @@ plotly_chart <- ggplotly(plot)
 plotly_chart
 ```
 
-::: {.callout-note}
-
--   The density plot  provides insights into the distribution of total savings among different education levels. The x-axis represents the total amount of savings, while the y-axis represents the density of participants at each savings level.
+::: callout-note
+-   The density plot provides insights into the distribution of total savings among different education levels. The x-axis represents the total amount of savings, while the y-axis represents the density of participants at each savings level.
 
 -   From the plot, it can be observed that individuals with a bachelor's degree have a higher concentration of savings compared to other education levels. The density curve for the bachelor's education level peaks at a higher savings amount, indicating that a significant proportion of participants with a bachelor's degree have accumulated more savings.
 
 -   On the other hand, participants with lower education levels, such as high school or below, exhibit a lower density of savings. The density curve for these education levels shows a peak at lower savings amounts, suggesting that a majority of participants with lower education levels have savings below 50000.
 
 -   This analysis suggests a positive correlation between education level and savings, with higher education levels generally associated with higher savings. It highlights the potential financial benefits of pursuing higher education, as individuals with higher education levels tend to accumulate more savings over time.
-
 :::
 
 ## Code
@@ -1537,31 +1518,23 @@ plotly_chart <- ggplotly(plot)
 
 plotly_chart
 ```
-
 :::
 
-
-
-
 ## **3. Limitations and Recommendations**
+
 -   **Limitations:**
 
-::: {.callout-note}
-
+::: callout-note
 -   Limited variables: The analysis focuses on a specific set of variables and may not capture the full complexity of the relationship between household size and age group. Other relevant variables that could influence the relationship may not have been considered.
 
 -   Data quality: The analysis assumes that the data used for the plot is accurate and representative. Any data errors, missing values, or biases in the data could impact the validity of the conclusions drawn.
 
 -   Generalization: The findings and conclusions based on the analysis may not be generalizable to a larger population or different contexts. The analysis is specific to the dataset and participants included, and the results may not hold true for other populations or settings.
-
-
 :::
 
-   
 -   **Recommendations:**
 
-::: {.callout-note}
-
+::: callout-note
 -   Include additional variables: To gain a more comprehensive understanding of the relationship between household size and age group, it is recommended to consider other relevant variables such as income, occupation, or geographic location. These variables can provide additional insights and help uncover underlying factors influencing the relationship.
 
 -   Statistical tests: While visualizations provide initial insights, it is advisable to conduct statistical tests to determine the significance of relationships. Hypothesis testing, regression analysis, or other appropriate statistical methods can provide more robust evidence and quantify the strength of relationships.
@@ -1573,21 +1546,14 @@ plotly_chart
 -   Longitudinal analysis: Analyzing data over time can provide insights into trends and changes in the relationship between household size and age group. Longitudinal analysis can help identify patterns and determine the stability of relationships over time.
 
 -   Interpretation caution: When interpreting the findings, it is important to consider the limitations of the analysis and acknowledge potential confounding variables or alternative explanations. Drawing cautious and nuanced conclusions can prevent over generalization and ensure a more accurate understanding of the relationship between household size and age group.
-
 :::
-
-    
-
-
 
 ## **Appendix**
 
-- **Participants Table:**
+-   **Participants Table:**
 
-::: {.callout-tip}
-
-
-- The Participants table contains information about the participants involved in the study. It provides details such as participant IDs, household size, presence of children, age, education level, primary interest group, and joviality level.
+::: callout-tip
+-   The Participants table contains information about the participants involved in the study. It provides details such as participant IDs, household size, presence of children, age, education level, primary interest group, and joviality level.
 
     -   participantId (nominal): This column represents the unique ID assigned to each participant. It serves as a unique identifier for each individual.
 
@@ -1602,13 +1568,11 @@ plotly_chart
     -   interestGroup (char): This column denotes the participant's stated primary interest group. It is represented by a single character, ranging from "A" to "J." Each character corresponds to a specific interest group to which the participant belongs.
 
     -   joviality (float): This column contains a numeric value ranging from 0 to 1, indicating the participant's overall happiness level at the start of the study. It provides an insight into the emotional well-being of the participants.
-
 :::
-
 
 -   **Financial Journal Table:**
 
-::: {.callout-tip}
+::: callout-tip
 -   The Financial Journal table contains transactional details of participants' expenses. It records information such as participant IDs, timestamps, expense categories, and transaction amounts.
 
     -   participantId (integer): This column serves as a unique ID corresponding to the participant affected by the financial transaction. It helps establish a link between the participants and their financial records.
@@ -1620,7 +1584,4 @@ plotly_chart
     -   amount (double): This column represents the amount of the transaction for each financial entry. It captures the numerical value of the expense incurred by the participants.
 :::
 
-These two tables, Participants and Financial Journal, provide crucial information about the participants' demographic details, and financial transactions. 
-
-
-
+These two tables, Participants and Financial Journal, provide crucial information about the participants' demographic details, and financial transactions.

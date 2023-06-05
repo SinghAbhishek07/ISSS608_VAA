@@ -56,6 +56,7 @@ hist(exam_data$MATHS)
 
 ::: panel-tabset
 ### The Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -73,7 +74,6 @@ ggplot(data=exam_data, aes(x = MATHS)) +
 
   ggtitle("Distribution of Maths scores")
 ```
-
 
 ### The Code Junk
 
@@ -96,20 +96,17 @@ ggplot(data=exam_data, aes(x = MATHS)) +
 ```
 :::
 
-
 ::: {style="font-size: 1.25em; text-align: center"}
-
 What is a statistical graphic?
-
 :::
 
-- Grammar of graphics defines the rules of structuring mathematical and aesthetic elements into a meaningful graph.
+-   Grammar of graphics defines the rules of structuring mathematical and aesthetic elements into a meaningful graph.
 
-- Two principles
+-   Two principles
 
- - Graphics = distinct layers of grammatical elements
+-   Graphics = distinct layers of grammatical elements
 
- - Meaningful plots through aesthetic mapping
+-   Meaningful plots through aesthetic mapping
 
 ## Essential Grammatical Elements in ggplot2
 
@@ -128,7 +125,6 @@ ggplot(data=exam_data)
 ```
 
 ::: callout-notes
-
 -   Notice that a blank canvas appears.
 
 -   `ggplot()` initializes a ggplot object.
@@ -138,12 +134,13 @@ ggplot(data=exam_data)
 -   If the dataset is not already a data.frame, it will be converted to one by `fortify()
 :::
 
-
 ## Essential Grammatical Elements in ggplot2
-### Geometric Objects: [*geom_bar*]
+
+### Geometric Objects: \[*geom_bar*\]
 
 ::: panel-tabset
 ## PLot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -155,6 +152,7 @@ ggplot(data=exam_data,
 ```
 
 ## Code
+
 ```{r}
 #| eval: false
 #| fig-width: 4
@@ -177,9 +175,9 @@ The code chunk below performs the following two steps:
 -   *binwidth argument* is used to change the binwidth to 2.5.
 :::
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -202,17 +200,17 @@ ggplot(data=exam_data, aes(x = MATHS)) +
 ```
 :::
 
-
 ### Geometric Objects: `geom_histogram()`
-In the code chunk below, [*geom_histogram()*] is used to create a simple histogram by using values in *MATHS* field of *exam_data*.
+
+In the code chunk below, \[*geom_histogram()*\] is used to create a simple histogram by using values in *MATHS* field of *exam_data*.
 
 ::: callout-note
 Note that the default bin is **30**.
 :::
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -243,10 +241,9 @@ In the code chunk below,
 -   *fill* argument is used to shade the histogram with light blue color, and
 -   *color* argument is used to change the outline colour of the bars in black
 
-
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -274,15 +271,16 @@ ggplot(data=exam_data,
 :::
 
 ### Modifying a geometric object by changing *aes()*
+
 -   The code chunk below changes the interior colour of the histogram (i.e. *fill*) by using sub-group of *aesthetic()*.
 
 ::: callout-note
 This approach can be used to colour, fill and alpha of the geometric.
 :::
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -311,15 +309,15 @@ ggplot(data=exam_data,
 
 ### Geometric Objects: geom-density
 
-[`geom-density()`]computes and plots kernel density estimate, which is a smoothed version of the histogram.
+\[`geom-density()`\]computes and plots kernel density estimate, which is a smoothed version of the histogram.
 
 It is a useful alternative to the histogram for continuous data that comes from an underlying smooth distribution.
 
 The code below plots the distribution of Maths scores in a kernel density estimate plot.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -344,9 +342,9 @@ ggplot(data=exam_data,
 
 The code chunk below plots two kernel density lines by using *colour* or *fill* arguments of *aes()*
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -371,14 +369,13 @@ ggplot(data=exam_data,
 ```
 :::
 
-
 ### Geometric Objects: geom_boxplot
--   [`geom_boxplot()`]displays continuous value list.
 
+-   \[`geom_boxplot()`\]displays continuous value list.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -407,9 +404,9 @@ ggplot(data=exam_data,
 
 The code chunk below plots the distribution of Maths scores by gender in notched plot instead of boxplot.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -435,11 +432,12 @@ ggplot(data=exam_data,
 :::
 
 ### *geom* objects can be combined
+
 The code chunk below plots the data points on the boxplots by using both `geom_boxplot()` and `geom_point()`.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -470,13 +468,13 @@ ggplot(data=exam_data,
 
 ### Geometric Objects: geom_violin
 
-[`geom_violin`] is designed for creating violin plot. Violin plots are a way of comparing multiple data distributions. With ordinary density curves, it is difficult to compare more than just a few distributions because the lines visually interfere with each other. With a violin plot, it's easier to compare several distributions since they're placed side by side.
+\[`geom_violin`\] is designed for creating violin plot. Violin plots are a way of comparing multiple data distributions. With ordinary density curves, it is difficult to compare more than just a few distributions because the lines visually interfere with each other. With a violin plot, it's easier to compare several distributions since they're placed side by side.
 
 The code below plot the distribution of Maths score by gender in violin plot.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -501,14 +499,13 @@ ggplot(data=exam_data,
 ```
 :::
 
-
 ### Geometric Objects: `geom_violin()` and `geom_boxplot()`
 
 The code chunk below combined a violin plot and a boxplot to show the distribution of Maths scores by gender.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -537,12 +534,12 @@ ggplot(data=exam_data,
 
 ### Geometric Objects: `geom_point()`
 
--   [`geom_point()`] is especially useful for creating scatterplot.
+-   \[`geom_point()`\] is especially useful for creating scatterplot.
 -   The code chunk below plots a scatterplot showing the Maths and English grades of pupils by using `geom_point()`.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -567,7 +564,6 @@ ggplot(data=exam_data,
 ```
 :::
 
-
 ### Statistics, *stat*
 
 -   The Statistics functions statistically transform data, usually as some form of summary. For example:
@@ -577,14 +573,14 @@ ggplot(data=exam_data,
 -   There are two ways to use these functions:
     -   add a `stat_()` function and override the default geom, or
     -   add a `geom_()` function and override the default stat.
-    
+
 ### Working with stat - the *stat_summary()* method
 
-The code chunk below adds mean values by using [`stat_summary()`] function and overriding the default geom.
+The code chunk below adds mean values by using \[`stat_summary()`\] function and overriding the default geom.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -616,11 +612,12 @@ ggplot(data=exam_data,
 :::
 
 ### Working with stat - the `geom()` method
+
 The code chunk below adding mean values by using `geom_()` function and overriding the default stat.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -653,13 +650,13 @@ ggplot(data=exam_data,
 
 ### How to add a best fit curve on a scatterplot?
 
-In the code chunk below, [`geom_smooth()`] is used to plot a best fit curve on the scatterplot.
+In the code chunk below, \[`geom_smooth()`\] is used to plot a best fit curve on the scatterplot.
 
 -   The default method used is *loess*.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -686,9 +683,9 @@ ggplot(data=exam_data,
 
 The default smoothing method can be overridden as shown below.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -727,16 +724,15 @@ ggplot(data=exam_data,
 
 ### `facet_wrap()`
 
--   [`facet_wrap`] wraps a 1d sequence of panels into 2d.
+-   \[`facet_wrap`\] wraps a 1d sequence of panels into 2d.
 
 -   This is generally a better use of screen space than facet_grid because most displays are roughly rectangular.
 
-
 The code chunk below plots a trellis plot using `facet-wrap()`.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -763,15 +759,15 @@ ggplot(data=exam_data,
 
 ### `facet_grid()` function
 
--   [`facet_grid()`] forms a matrix of panels defined by row and column facetting variables.
+-   \[`facet_grid()`\] forms a matrix of panels defined by row and column facetting variables.
 
 -   It is most useful when you have two discrete variables, and all combinations of the variables exist in the data.
 
 The code chunk below plots a trellis plot using `facet_grid()`.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -802,17 +798,16 @@ ggplot(data=exam_data,
 
 -   There are a number of different possible coordinate systems to use, they are:
 
-    -   [`coord_cartesian()`]: the default cartesian coordinate systems, where you specify x and y values (e.g. allows you to zoom in or out).
-    -   [`coord_flip()`]: a cartesian system with the x and y flipped.
-    -   [`coord_fixed()`]: a cartesian system with a "fixed" aspect ratio .
-    -   [`coord_quickmap()`](: a coordinate system that approximates a good aspect ratio for maps.
-
+    -   \[`coord_cartesian()`\]: the default cartesian coordinate systems, where you specify x and y values (e.g. allows you to zoom in or out).
+    -   
+    -   \[`coord_fixed()`\]: a cartesian system with a "fixed" aspect ratio .
+    -   \[`coord_quickmap()`\](: a coordinate system that approximates a good aspect ratio for maps.
 
 By the default, the bar chart of ggplot2 is in vertical form.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -835,12 +830,11 @@ ggplot(data=exam_data,
 ```
 :::
 
-
 The code chunk below flips the horizontal bar chart into vertical bar chart by using `coord_flip()`.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -869,9 +863,9 @@ ggplot(data=exam_data,
 
 The code chunk below fixed both the y-axis and x-axis range from 0-100.
 
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -902,7 +896,6 @@ ggplot(data=exam_data,
 ```
 :::
 
-
 ### Themes
 
 -   Themes control elements of the graph not related to the data. For example:
@@ -917,13 +910,11 @@ ggplot(data=exam_data,
 -   A list of theme can be found at this [link](https://ggplot2.tidyverse.org/reference/ggtheme.html).
 -   Each theme element can be conceived of as either a line (e.g. x-axis), a rectangle (e.g. graph background), or text (e.g. axis title).
 
-
 The code chunk below plot a horizontal bar chart using `theme_gray()`
 
-
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -952,10 +943,9 @@ ggplot(data=exam_data,
 
 A horizontal bar chart plotted using `theme_classic()`.
 
-
-:::panel-tabset
-
+::: panel-tabset
 ## Plot
+
 ```{r}
 #| echo: false
 #| fig-width: 4
@@ -981,4 +971,3 @@ ggplot(data=exam_data,
 
 ```
 :::
-
