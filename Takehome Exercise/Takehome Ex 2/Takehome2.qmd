@@ -1,0 +1,2675 @@
+---
+title: "<center>TakeHome-2</center>"
+subtitle:  "**<center> Time Traveling Through Trade: Visualizing Temporal Patterns to Expose Illegal Fishing</center>**"
+author: "Abhishek Singh"
+date: 28 May 2023
+date-modified: "`r Sys.Date()`"
+execute: 
+  echo: true
+  eval: true
+  warning: false
+format:
+  html:
+    code-fold: true
+    code-summary: "A Glimpse into the Code "
+---
+
+## **Overview**
+
+This assignment focuses on the collaboration between FishEye International and the country of Oceanus to combat illegal, unreported, and unregulated (IUU) fishing. FishEye has received import/export data from Oceanus' marine and fishing industries to identify companies engaged in illegal activities. However, due to incomplete data, FishEye has transformed the trade records into a knowledge graph. The objective is to leverage visual analytics techniques to unveil temporal patterns within the knowledge graph, allowing FishEye to identify entities involved in IUU fishing and understand business relationships. This analysis aims to provide a detailed understanding of patterns for entities and their activities over time.
+
+## **Objective**
+
+The objective of this analysis is to utilize visual analytics techniques to identify temporal patterns for individual entities and between entities in the knowledge graph derived from Oceanus' trade records. By examining these patterns, FishEye aims to:
+
+ -   Uncover Illegal Fishing Entities: Identify companies that engage in IUU fishing practices by tracking their activities over time. This will help FishEye pinpoint entities involved in illegal fishing operations and prioritize enforcement efforts.
+
+ -   Detect Business Relationship Patterns:  By analyzing temporal patterns, FishEye can identify recurring links, collaborations, or changes in business relationships that might indicate illegal activities or attempts to evade detection.
+
+ -   Monitor Company Behavior: Track the behavior of suspicious entities that may shut down and reemerge under different names. By visualizing temporal patterns, FishEye can compare the activities of companies over time, enabling them to identify potential reoccurrences of illegal fishing practices.
+
+ -  Protect Marine Species: Use the findings to develop targeted strategies to mitigate the impact of IUU fishing on marine species. Understanding the patterns of illegal activities will help FishEye take proactive measures to protect vulnerable marine species and ecosystems.
+ 
+## **My TASK**
+ Use visual analytics to identify temporal patterns for individual entities and between entities in the knowledge graph FishEye created from trade records. Categorize the types of business relationship patterns you find. Limit your response to 600 words and 6 images.
+ 
+## **1. Data Preparation**
+
+### 1.1 Install R packages and import dataset
+
+```{r}
+pacman::p_load(jsonlite, igraph, tidygraph, ggraph,
+               visNetwork, lubridate, clock,
+               tidyverse, graphlayouts,knitr,plotly, 
+               ggthemes,hrbrthemes,treemap,patchwork, ggiraph,
+               ggstatsplot, summarytools)
+```
+
+::: {.callout-important collapse="true"}
+The code chunk  uses `pacman::p_load()` to check if packages are installed. If they are, they will be launched into R. The packages used are
+
+-   `jsonlite`: It is used for working with JSON data in R, providing functions to parse JSON and convert it to data frames.
+
+-   `igraph` : It offers a wide range of graph algorithms and visualization capabilities
+
+-   `tidygraph`: An interface for manipulating and analyzing graphs using the principles of tidy data
+
+-   `ggraph`: It allows for creating aesthetically pleasing and customizable graph visualizations.
+
+-   `visNetwork`: It provides functions to create and customize interactive network plots
+
+-   `lubridate`: It is a package for working with dates and times in R.
+
+-   `clock`: It is a package for working with time zones, providing functions to convert between different time zones and perform various time-related calculations.
+
+
+-   `ggiraph`: used for interactive features such as tooltips, zooming, and panning. It is particularly useful for creating interactive web-based visualizations.
+
+-   `hrbrthemes`: It provides additional themes and styling options
+
+-   `treemap`: This package offers functions to create treemaps
+
+-   `plotly`: Used for creating interactive web-based graphs.
+
+-   `ggstatsplot`: Used for creating graphics with details from statistical tests.
+
+-   `graphlayouts`: provides various graph layout algorithms for arranging the nodes and edges of a graph in a visually appealing manner.
+
+-   `knitr`: Used for dynamic report generation
+
+-   `pacthwork`: Used to combine plots
+
+-   `ggdist`: Used for visualising distribution and uncertainty
+
+-   `ggthemes`: Provide additional themes for `ggplot2`
+
+-   `tidyverse`: A collection of core packages designed for data science, used extensively for data preparation and wrangling.
+
+-   `rstatix`: used for data manipulation, summarization, and group-wise comparisons
+
+-   `Hmisc` : used to compute descriptive statistics for a variable in a dataset
+
+-   `DT` : DataTables that create interactive table on html page.
+
+-   `summarytools`- used for creating summary statistics and tables for data exploration and reporting
+
+-   `kableExtra`- is used for creating tables in various output formats, such as HTML, PDF, or Word documents.
+
+-   `ggplot2`- provides a flexible and layered approach to create a wide variety of high-quality static and interactive plots.
+
+-   `summarytools`- used for creating summary statistics and tables for data exploration and reporting
+
+    All packages can be found within CRAN.
+
+`pacman::p_load()` function from the `pacman` package is used in the following code chunk to install and call the libraries of multiple R packages:
+:::
+
+
+### 1.2 Importing data sets
+
+::: panel-tabset
+
+## Code
+
+```{r}
+mc2 <- fromJSON("data/mc2_challenge_graph.json")
+```
+
+```{r}
+glimpse(mc2)
+```
+
+## Data dictionary
+
+The dataset consists of a graph in JSON format with 34,552 nodes and 5,464,092 directed edges. The node attributes include the company name, shipping country, receiving country. The edge attributes provide information such as the source and target company names, arrival date, HS code, value of goods in OMU and USD, volume in TEU, weight in kilograms, dataset identifier, and type.
+
+**NODE**
+
+- `id`:	Name of the company that originated (or received) the shipment
+- `shpcountry`:	Country the company most often associated with when shipping
+- `rcvcountry`:	Country the company most often associated with when receiving
+
+**EDGE**
+
+- `source`:	Name of the company that originated the shipment
+- `target`:	Name of the company that received the shipment
+- `arrivaldate`:	Date the shipment arrived at port in YYYY-MM-DD format
+- `hscode`:	Harmonized System code for the shipment
+- `valueofgoods_omu`:	Customs-declared value of the total shipment in Oceanus Monetary Units (OMU)
+- `volumeteu`:	The volume of the shipment in 'Twenty-foot equivalent units'
+- `weightkg`:	The weight of the shipment in kilograms (if known)
+- `valueofgoodsusd`:	valueofgoods_omu in USD
+
+:::
+
+#### 1.2.1 Spliting data into NODEs and EDGEs
+
+**Extract nodes**
+
+::: panel-tabset
+
+## Extraction
+```{r}
+MC2_Nodes <- as_tibble(mc2$nodes) %>%
+  select(id, shpcountry, rcvcountry)
+kable(head(MC2_Nodes))
+```
+
+```{r}
+str(MC2_Nodes)
+```
+## Summary Statitics
+```{r}
+Hmisc::describe(MC2_Nodes)
+```
+
+## Data Health
+
+**Checking Missing Values:**
+```{r}
+colSums(is.na(MC2_Nodes))
+```
+shpcountry has 22359 missing values, andrcvcountry has 2909 missing values. To do better analysis, all NA values are replaced by “NULL VALUES”.
+
+```{r}
+# Assigning NULL VALUES
+MC2_Nodes <- MC2_Nodes %>%
+  replace(is.na(MC2_Nodes), "NULL VALUES")
+```
+
+
+**Checking  Duplicates**
+```{r}
+any(duplicated(MC2_Nodes))
+```
+
+No Duplicate values here
+
+:::
+
+
+**Extract edges**
+
+::: panel-tabset
+## Extraction
+
+```{r}
+MC2_Edges <- as_tibble(mc2$links) %>%
+  mutate(ArrivalDate = ymd(arrivaldate)) %>%
+  mutate(Year = year(ArrivalDate)) %>%
+  select(source, target, ArrivalDate, Year, hscode,  valueofgoods_omu, 
+         volumeteu, weightkg, valueofgoodsusd) %>% 
+  distinct()
+kable(head(MC2_Edges))
+```
+
+```{r}
+str(MC2_Edges)
+```
+
+::: callout-tip
+
+
+- mutate() is used two times to create two derived fields.
+- ymd() of lubridate package is used to covert arrivaldate field from character data type into date data type.
+- year() of lubridate package is used to convert the values in ArrivalDate field into year values.
+- select() is used not only to select the field needed but also to re-organise the sequent of the fields
+
+
+:::
+
+
+## Summary Statitics
+```{r}
+Hmisc::describe(MC2_Edges)
+```
+
+## Data Health
+
+
+**Checking Missing Values:**
+```{r}
+colSums(is.na(MC2_Edges))
+```
+`valueofgoods_omu` has too many missing values and there it will be removed. While on other missing values we can check for more details.
+
+```{r}
+MC2_Edges <- MC2_Edges %>% select(-valueofgoods_omu)
+
+glimpse(MC2_Edges)
+```
+
+:::
+
+### 1.3 Data Wrangling
+
+#### 1.3.1 HsCode related to Fishing
+
+
+**Preparing for the Edges**
+
+On first observation it can be seen how many unqiue HsCode available and what all we can use related to fishing. There are 4761 Unique Hscode.
+
+```{r}
+hscode <- MC2_Edges %>% 
+  group_by( hscode) %>% 
+   summarise(Weight = n(), .groups = "drop")
+
+glimpse(arrange(hscode, desc(Weight)))
+```
+After understanding the Singapore Trade Classification and Connect2India, it has been discovered that there is a limited range of codes associated with fishing. These codes encompass numbers ranging from 2301-2530, 1603 to 1605, and 30000 to 390000.
+
+```{r}
+MC2_Edges$hscode <- as.integer(MC2_Edges$hscode)
+
+Edge1 <- MC2_Edges %>% filter(between(hscode, 160300, 160599))
+Edge2 <- MC2_Edges %>% filter(between(hscode, 230100, 253099))
+Edge3 <- MC2_Edges %>% filter(between(hscode, 300000, 390000))
+
+MC2_Edges <- rbind(Edge1, Edge2, Edge3) %>%
+  distinct()
+```
+
+
+
+::: callout-tip
+
+- hscode is converted from chr to int format.
+- Duplicate records are removed, if any.
+
+:::
+
+- Creating a new Aggregated Edge Table that will have source, target, hscode,Year
+
+
+```{r}
+MC2_Edges_Aggregated <- MC2_Edges %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup() 
+```
+
+::: callout-tip
+- group_by() is used to aggregate values by source, target, hscode, Year.
+- summarise() and n() are used to count the aggregated records.
+- filter() is then used to perform two selections
+  -   to select all records whereby source are not equal to target, and
+  -   to select all records whereby the values of their weights field are greater than 1
+  
+:::
+
+**Preparing for the Nodes**
+- Creating a fresh data table for the nodes in MC2 by utilizing the source and target information from the MC2_edges_aggregated data table. The objective is to guarantee that all the source and target values are incorporated as nodes in the new data table.
+
+
+
+```{r}
+id1 <- MC2_Edges_Aggregated %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- MC2_Edges_Aggregated %>%
+  select(target) %>%
+  rename(id = target)
+MC2_nodes_extracted <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+```{r}
+MC2_combined <- tbl_graph(nodes = MC2_nodes_extracted,
+                       edges = MC2_Edges_Aggregated,
+                       directed = TRUE)
+```
+
+```{r}
+MC2_combined
+```
+
+The dataframe ‘MC2_combined’ has 11888 nodes and 90919 edges. It is a directed graph with 148 components.
+
+#### 1.3.2 Years Wise Fishing
+
+
+**Preparing for the Edges**
+ 
+ Checking the Unique number of years
+ 
+```{r}
+sort(unique(MC2_Edges$Year))
+```
+ 
+ 
+::: panel-tabset
+
+## 2028
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Agg_2028_Edges1 <- Edge1 %>%
+  filter(Year == "2028") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+
+
+### 230100, 253099
+```{r}
+Agg_2028_Edges2 <- Edge2 %>%
+  filter(Year == "2028") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+### 300000-390000
+```{r}
+Agg_2028_Edges3 <- Edge3 %>%
+  filter(Year == "2028") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+:::
+
+
+
+
+
+
+## 2029
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Agg_2029_Edges1 <- Edge1 %>%
+  filter(Year == "2029") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+
+### 230100, 253099
+```{r}
+Agg_2029_Edges2 <- Edge2 %>%
+  filter(Year == "2029") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+### 300000-390000
+```{r}
+Agg_2029_Edges3 <- Edge3 %>%
+  filter(Year == "2029") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+:::
+
+
+
+
+## 2030
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Agg_2030_Edges1 <- Edge1 %>%
+  filter(Year == "2030") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+
+### 230100, 253099
+```{r}
+Agg_2030_Edges2 <- Edge2 %>%
+  filter(Year == "2030") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+### 300000-390000
+```{r}
+Agg_2030_Edges3 <- Edge3 %>%
+  filter(Year == "2030") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+:::
+
+
+
+
+## 2031
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Agg_2031_Edges1 <- Edge1 %>%
+  filter(Year == "2031") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+
+### 230100, 253099
+```{r}
+Agg_2031_Edges2 <- Edge2 %>%
+  filter(Year == "2031") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+### 300000-390000
+```{r}
+Agg_2031_Edges3 <- Edge3 %>%
+  filter(Year == "2031") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+:::
+
+
+
+
+## 2032
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Agg_2032_Edges1 <- Edge1 %>%
+  filter(Year == "2032") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+
+### 230100, 253099
+```{r}
+Agg_2032_Edges2 <- Edge2 %>%
+  filter(Year == "2032") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+### 300000-390000
+```{r}
+Agg_2032_Edges3 <- Edge3 %>%
+  filter(Year == "2032") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+:::
+
+
+
+
+
+## 2033
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Agg_2033_Edges1 <- Edge1 %>%
+  filter(Year == "2033") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+
+### 230100, 253099
+```{r}
+Agg_2033_Edges2 <- Edge2 %>%
+  filter(Year == "2033") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+### 300000-390000
+```{r}
+Agg_2033_Edges3 <- Edge3 %>%
+  filter(Year == "2033") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+:::
+
+
+
+## 2034
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Agg_2034_Edges1 <- Edge1 %>%
+  filter(Year == "2034") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+
+### 230100, 253099
+```{r}
+Agg_2034_Edges2 <- Edge2 %>%
+  filter(Year == "2034") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+### 300000-390000
+```{r}
+Agg_2034_Edges3 <- Edge3 %>%
+  filter(Year == "2034") %>%
+  group_by(source, target, hscode, Year) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  filter(weights > 1) %>%
+  ungroup()
+```
+
+:::
+
+
+## All
+
+::: panel-tabset
+### 160300-160599
+```{r}
+CombinedEdges1 <- rbind(Agg_2028_Edges1, 
+                        Agg_2029_Edges1, 
+                        Agg_2030_Edges1,
+                        Agg_2031_Edges1,
+                        Agg_2032_Edges1,
+                        Agg_2033_Edges1,
+                        Agg_2034_Edges1)
+```
+
+
+
+### 230100, 253099
+```{r}
+CombinedEdges2 <- rbind(Agg_2028_Edges2, 
+                        Agg_2029_Edges2, 
+                        Agg_2030_Edges2,
+                        Agg_2031_Edges2,
+                        Agg_2032_Edges2,
+                        Agg_2033_Edges2,
+                        Agg_2034_Edges2)
+```
+
+### 300000-390000
+```{r}
+CombinedEdges3 <- rbind(Agg_2028_Edges3, 
+                        Agg_2029_Edges3, 
+                        Agg_2030_Edges3,
+                        Agg_2031_Edges3,
+                        Agg_2032_Edges3,
+                        Agg_2033_Edges3,
+                        Agg_2034_Edges3)
+```
+
+:::
+
+:::
+
+
+
+**Preparing for the Nodes**
+
+- Creating a fresh data table for the nodes in MC2 by utilizing the source and target information from the MC2_edges_aggregated data table. The objective is to guarantee that all the source and target values are incorporated as nodes in the new data table.
+
+::: panel-tabset
+
+## 2028
+
+::: panel-tabset
+### 160300-160599
+
+```{r}
+id1 <- Agg_2028_Edges1 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2028_Edges1 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2028_Nodes1 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+### 230100, 253099
+```{r}
+id1 <- Agg_2028_Edges2 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2028_Edges2 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2028_Nodes2 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+
+### 300000-390000
+```{r}
+id1 <- Agg_2028_Edges3 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2028_Edges3 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2028_Nodes3 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+:::
+
+## 2029
+
+::: panel-tabset
+### 160300-160599
+
+```{r}
+id1 <- Agg_2029_Edges1 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2029_Edges1 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2029_Nodes1 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+
+### 230100, 253099
+```{r}
+id1 <- Agg_2029_Edges2 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2029_Edges2 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2029_Nodes2 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+### 300000-390000
+
+```{r}
+id1 <- Agg_2029_Edges3 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2029_Edges3 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2029_Nodes3 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+:::
+
+
+## 2030
+
+::: panel-tabset
+### 160300-160599
+
+```{r}
+id1 <- Agg_2030_Edges1 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2030_Edges1 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2030_Nodes1 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+
+### 230100, 253099
+```{r}
+id1 <- Agg_2030_Edges2 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2030_Edges2 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2030_Nodes2 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+### 300000-390000
+
+```{r}
+id1 <- Agg_2030_Edges3 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2030_Edges3 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2030_Nodes3 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+:::
+
+
+## 2031
+
+::: panel-tabset
+### 160300-160599
+
+```{r}
+id1 <- Agg_2031_Edges1 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2031_Edges1 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2031_Nodes1 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+
+### 230100, 253099
+```{r}
+id1 <- Agg_2031_Edges2 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2031_Edges2 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2031_Nodes2 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+### 300000-390000
+
+```{r}
+id1 <- Agg_2031_Edges3 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2031_Edges3 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2031_Nodes3 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+:::
+
+
+## 2032
+
+::: panel-tabset
+### 160300-160599
+
+```{r}
+id1 <- Agg_2032_Edges1 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2032_Edges1 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2032_Nodes1 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+
+### 230100, 253099
+```{r}
+id1 <- Agg_2032_Edges2 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2032_Edges2 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2032_Nodes2 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+### 300000-390000
+
+```{r}
+id1 <- Agg_2032_Edges3 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2032_Edges3 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2032_Nodes3 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+:::
+
+
+## 2033
+
+::: panel-tabset
+### 160300-160599
+
+```{r}
+id1 <- Agg_2033_Edges1 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2033_Edges1 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2033_Nodes1 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+
+### 230100, 253099
+```{r}
+id1 <- Agg_2033_Edges2 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2033_Edges2 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2033_Nodes2 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+### 300000-390000
+
+```{r}
+id1 <- Agg_2033_Edges3 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2033_Edges3 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2033_Nodes3 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+:::
+
+
+## 2034
+
+::: panel-tabset
+### 160300-160599
+
+```{r}
+id1 <- Agg_2034_Edges1 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2034_Edges1 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2034_Nodes1 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+
+
+### 230100, 253099
+```{r}
+id1 <- Agg_2034_Edges2 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2034_Edges2 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2034_Nodes2 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+### 300000-390000
+
+```{r}
+id1 <- Agg_2034_Edges3 %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Agg_2034_Edges3 %>%
+  select(target) %>%
+  rename(id = target)
+Agg_2034_Nodes3 <- rbind(id1, id2) %>%
+  distinct()
+```
+
+:::
+
+
+## ALL
+
+::: panel-tabset
+### 160300-160599
+
+```{r}
+CombinedNodes1 <- rbind(Agg_2028_Nodes1,
+                        Agg_2029_Nodes1,
+                        Agg_2030_Nodes1,
+                        Agg_2031_Nodes1,
+                        Agg_2032_Nodes1,
+                        Agg_2033_Nodes1,
+                        Agg_2034_Nodes1)
+```
+
+
+
+### 230100, 253099
+```{r}
+CombinedNodes2 <- rbind(Agg_2028_Nodes2,
+                        Agg_2029_Nodes2,
+                        Agg_2030_Nodes2,
+                        Agg_2031_Nodes2,
+                        Agg_2032_Nodes2,
+                        Agg_2033_Nodes2,
+                        Agg_2034_Nodes2)
+```
+
+### 300000-390000
+
+```{r}
+CombinedNodes3 <- rbind(Agg_2028_Nodes3,
+                        Agg_2029_Nodes3,
+                        Agg_2030_Nodes3,
+                        Agg_2031_Nodes3,
+                        Agg_2032_Nodes3,
+                        Agg_2033_Nodes3,
+                        Agg_2034_Nodes3)
+```
+
+:::
+
+:::
+
+
+
+**Build the Tidygraph data model**
+
+::: panel-tabset
+
+## 2028
+
+```{r}
+# 160300-160599
+Graph2028_1 <- tbl_graph(nodes = Agg_2028_Nodes1,
+                       edges = Agg_2028_Edges1,
+                       directed = TRUE) 
+
+
+# 230100, 253099
+Graph2028_2 <- tbl_graph(nodes = Agg_2028_Nodes2,
+                       edges = Agg_2028_Edges2,
+                       directed = TRUE) 
+
+# 300000-390000
+Graph2028_3 <- tbl_graph(nodes = Agg_2028_Nodes3,
+                       edges = Agg_2028_Edges3,
+                       directed = TRUE) 
+
+```
+
+
+
+## 2029
+
+```{r}
+# 160300-160599
+Graph2029_1 <- tbl_graph(nodes = Agg_2029_Nodes1,
+                       edges = Agg_2029_Edges1,
+                       directed = TRUE) 
+
+
+# 230100, 253099
+Graph2029_2 <- tbl_graph(nodes = Agg_2029_Nodes2,
+                       edges = Agg_2029_Edges2,
+                       directed = TRUE) 
+
+# 300000-390000
+Graph2029_3 <- tbl_graph(nodes = Agg_2029_Nodes3,
+                       edges = Agg_2029_Edges3,
+                       directed = TRUE) 
+
+```
+
+
+## 2030
+
+```{r}
+# 160300-160599
+Graph2030_1 <- tbl_graph(nodes = Agg_2030_Nodes1,
+                       edges = Agg_2030_Edges1,
+                       directed = TRUE) 
+
+
+# 230100, 253099
+Graph2030_2 <- tbl_graph(nodes = Agg_2030_Nodes2,
+                       edges = Agg_2030_Edges2,
+                       directed = TRUE) 
+
+# 300000-390000
+Graph2030_3 <- tbl_graph(nodes = Agg_2030_Nodes3,
+                       edges = Agg_2030_Edges3,
+                       directed = TRUE) 
+
+```
+
+
+
+## 2031
+
+```{r}
+# 160300-160599
+Graph2031_1 <- tbl_graph(nodes = Agg_2031_Nodes1,
+                       edges = Agg_2031_Edges1,
+                       directed = TRUE) 
+
+
+# 230100, 253099
+Graph2031_2 <- tbl_graph(nodes = Agg_2031_Nodes2,
+                       edges = Agg_2031_Edges2,
+                       directed = TRUE) 
+
+# 300000-390000
+Graph2031_3 <- tbl_graph(nodes = Agg_2031_Nodes3,
+                       edges = Agg_2031_Edges3,
+                       directed = TRUE) 
+
+```
+
+
+
+## 2032
+
+```{r}
+# 160300-160599
+Graph2032_1 <- tbl_graph(nodes = Agg_2032_Nodes1,
+                       edges = Agg_2032_Edges1,
+                       directed = TRUE) 
+
+
+# 230100, 253099
+Graph2032_2 <- tbl_graph(nodes = Agg_2032_Nodes2,
+                       edges = Agg_2032_Edges2,
+                       directed = TRUE) 
+
+# 300000-390000
+Graph2032_3 <- tbl_graph(nodes = Agg_2032_Nodes3,
+                       edges = Agg_2032_Edges3,
+                       directed = TRUE) 
+
+```
+
+
+
+## 2033
+
+```{r}
+# 160300-160599
+Graph2033_1 <- tbl_graph(nodes = Agg_2033_Nodes1,
+                       edges = Agg_2033_Edges1,
+                       directed = TRUE) 
+
+
+# 230100, 253099
+Graph2033_2 <- tbl_graph(nodes = Agg_2033_Nodes2,
+                       edges = Agg_2033_Edges2,
+                       directed = TRUE) 
+
+# 300000-390000
+Graph2033_3 <- tbl_graph(nodes = Agg_2033_Nodes3,
+                       edges = Agg_2033_Edges3,
+                       directed = TRUE) 
+
+```
+
+## 2034
+
+```{r}
+# 160300-160599
+Graph2034_1 <- tbl_graph(nodes = Agg_2034_Nodes1,
+                       edges = Agg_2034_Edges1,
+                       directed = TRUE) 
+
+
+# 230100, 253099
+Graph2034_2 <- tbl_graph(nodes = Agg_2034_Nodes2,
+                       edges = Agg_2034_Edges2,
+                       directed = TRUE) 
+
+# 300000-390000
+Graph2034_3 <- tbl_graph(nodes = Agg_2034_Nodes3,
+                       edges = Agg_2034_Edges3,
+                       directed = TRUE) 
+
+```
+
+
+## ALL
+
+```{r}
+# 160300-160599
+Graph_All1 <- tbl_graph(nodes = CombinedNodes1,
+                       edges = CombinedEdges1,
+                       directed = TRUE) 
+
+
+# 230100, 253099
+Graph_All2 <- tbl_graph(nodes = CombinedNodes2,
+                       edges = CombinedEdges2,
+                       directed = TRUE) 
+
+# 300000-390000
+Graph_All3 <- tbl_graph(nodes = CombinedNodes3,
+                       edges = CombinedEdges3,
+                       directed = TRUE) 
+
+```
+
+:::
+
+
+::: panel-tabset
+
+## 2028
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Graph2028_1
+```
+The dataframe ‘Graph2028_1’ has 1507 nodes and 2396 edges. It is a directed graph with 112 components.
+
+### 230100, 253099
+
+```{r}
+Graph2028_2
+```
+The dataframe ‘Graph2028_2’ has 309 nodes and 274 edges. It is a directed graph with 58 components.
+### 300000-390000
+```{r}
+Graph2028_3
+```
+The dataframe ‘Graph2028_1’ has 4081 nodes and 9908 edges. It is a directed graph with 166 components.
+:::
+
+
+
+## 2029
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Graph2029_1
+```
+
+### 230100, 253099
+
+```{r}
+Graph2029_2
+```
+
+### 300000-390000
+```{r}
+Graph2029_3
+```
+
+:::
+
+
+## 2030
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Graph2030_1
+```
+
+### 230100, 253099
+
+```{r}
+Graph2030_2
+```
+
+### 300000-390000
+```{r}
+Graph2030_3
+```
+
+:::
+
+
+## 2031
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Graph2031_1
+```
+
+### 230100, 253099
+
+```{r}
+Graph2031_2
+```
+
+### 300000-390000
+```{r}
+Graph2031_3
+```
+
+:::
+
+
+## 2032
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Graph2032_1
+```
+
+### 230100, 253099
+
+```{r}
+Graph2032_2
+```
+
+### 300000-390000
+```{r}
+Graph2032_3
+```
+
+:::
+
+
+## 2033
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Graph2033_1
+```
+
+### 230100, 253099
+
+```{r}
+Graph2033_2
+```
+
+### 300000-390000
+```{r}
+Graph2033_3
+```
+
+:::
+
+## 2034
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Graph2034_1
+```
+
+### 230100, 253099
+
+```{r}
+Graph2034_2
+```
+
+### 300000-390000
+```{r}
+Graph2034_3
+```
+
+:::
+
+
+## All
+
+::: panel-tabset
+### 160300-160599
+```{r}
+Graph_All1
+```
+
+### 230100, 253099
+
+```{r}
+Graph_All2
+```
+
+### 300000-390000
+```{r}
+Graph_All2
+```
+
+:::
+
+:::
+
+
+
+## 2. Visualization
+
+### 2.1 Relationship Between Company_Shipment and Year
+
+Evaluating the yearly shipment weights of the top 100 companies is crucial for discerning shipping patterns. We will probe into the average weight per kilogram each year and study the interplay among the source, weight, and year. This exploration will be facilitated through the utilization of heatmaps and network graphs. Such an analysis will allow us to gain deeper insights into the shipping trends and dynamics.
+
+
+::: panel-tabset
+
+## Edge
+```{r}
+Top100_Edge <- MC2_Edges_Aggregated %>% 
+  arrange(desc(weights)) %>%
+  head(100)
+kable(head(Top100_Edge))
+```
+
+## Node
+```{r}
+id1 <- Top100_Edge %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- Top100_Edge %>%
+  select(target) %>%
+  rename(id = target)
+Top100_Node <- rbind(id1, id2) %>%
+  distinct()
+```
+
+:::
+
+
+
+
+```{r}
+shipment <- Top100_Edge %>%
+         select(Year, weights) %>%
+         group_by(Year) %>%
+         summarise(count=n(),weightkg = sum(weights),kg_per_ship=weightkg/count)
+
+p1 <- ggplot(data=shipment, 
+            aes(x = Year,
+                y = kg_per_ship)) +
+  geom_bar(stat = "identity") +
+  xlab("Year") +
+  ylab("Average per Kg")
+
+ggplotly(p1)
+
+
+# HeatMap 
+heatmap_data <- Top100_Edge %>%
+  group_by(source, Year) %>%
+  summarise(count = n(), .groups = 'drop')
+
+ggplot(heatmap_data, aes(x = Year, y = source, fill = count)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(x = "Year", y = "Source", fill = "Count of Weights", 
+       title = "Heatmap of Weights Count by Source and Year")
+
+# Network Graph
+
+Graph_Top100 <- tbl_graph(nodes = Top100_Node, edges = Top100_Edge, directed = TRUE)
+ggraph(Graph_Top100, layout = "fr") + 
+  geom_edge_fan(aes(width = weights, colour = factor(Year)), 
+                 alpha=0.7, arrow = arrow(length = unit(5, 'mm'))) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(size = 3) + 
+  theme_graph() +
+  geom_node_label(aes(label = id), size = 5.5, repel = TRUE, nudge_y = 0.1) +
+  
+  labs(
+    title = "Network of Top 100 Companies by Weight")
+        
+
+
+
+```
+
+
+
+In this analysis, we visualized a network graph using the MC2 dataset where nodes represent different sources/targets, and the edges between them represent the shipment weights, with the edge thickness indicating the magnitude of weights. The color of the edges denotes different years.
+
+Our network graph, particularly focusing on the weights, shows the flow of shipments from various sources to targets. The top three sources to targets with the highest shipment weights are as follows:
+
+    Nián yú Ltd. Corporation to Niger Bend Limited Liability Company Marine ecology with shipment weights of 3471 and 2979 in years 2031 and 2030, respectively.
+    Nián yú Ltd. Corporation to Costa de la Felicidad Shipping with shipment weights of 2797 and 2473 in years 2029 and 2028, respectively.
+    Sea Breezes S.A. de C.V. Freight to Caracola del Sol Services with a shipment weight of 2708 in the year 2031.
+
+These insights are critical in understanding the dynamics of shipment weights from different sources to targets over the years.
+
+
+
+
+
+### 2.2 Degree Centrality (In, Out and Total)
+
+::: {.callout-note collapse="true"}
+        **In-Degree Centrality:** For each node representing a shipping company , the in-degree centrality measures the number of incoming connections from other nodes. If this network represents the transfer of illegal goods (like illegally caught fish), a high in-degree centrality could suggest that a company is a major receiver of illegal goods. For example, a shipping company with high in-degree centrality might be a significant destination for illegal fish products.
+
+        **Out-Degree Centrality:**  For each node, the out-degree centrality measures the number of outgoing connections to other nodes. In the illegal fishing, a high out-degree centrality could indicate that a company or vessel is a major distributor or source of illegal goods. For instance, a fishing vessel with high out-degree centrality could be a significant source of illegal fishing activities, spreading its illicit catch to many different companies or locations.
+
+    Total Degree Centrality (All Degree Centrality): This measures the total number of connections for each node, both incoming and outgoing. A node with high total degree centrality could be involved in both receiving and distributing illegal goods. This indicate that a shipping company or a fishing vessel plays a central role in the illegal fishing network, both obtaining and dispatching illegal catch.
+
+:::
+
+
+::: panel-tabset
+
+
+
+```{r}
+Top_5 <- Agg_2028_Edges1%>% 
+  arrange(desc(weights)) %>%
+  head(5)
+kable(Top_5)
+```
+
+## 2028
+::: panel-tabset
+### 160300-160599
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2028_1_in <- degree(Graph2028_1, mode = "in")
+DC_2028_1_out <- degree(Graph2028_1, mode = "out")
+DC_2028_1_all <- degree(Graph2028_1, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2028_1$nodes$DC_2028_1_in <- DC_2028_1_in
+Graph2028_1$nodes$DC_2028_1_out <- DC_2028_1_out
+Graph2028_1$nodes$DC_2028_1_all <- DC_2028_1_all
+
+# Creating a graph plot with node size proportional to degree centrality
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2028_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2028_1_in, color = DC_2028_1_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2028")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2028_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2028_1_out, color = DC_2028_1_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2028")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2028_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2028_1_all, color = DC_2028_1_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2028")
+
+plot_list
+```
+
+::: {.callout-tip collapse="true"}
+Here's a summary of what each section of the code does:
+
+ -    Calculate Degree Centrality: The degree() function from the igraph package calculates degree centrality for all nodes in the graph. The mode argument specifies whether to calculate in-degree centrality (mode = "in"), out-degree centrality (mode = "out"), or total degree centrality (mode = "all").
+
+ -   Add Degree Centrality to Node Data: The calculated degree centrality values are added to the node attribute data of Graph2028_1.
+
+ -  Create Graph Plots: The ggraph package is used to create plots of the graph, with node size proportional to degree centrality. The geom_edge_link() function adds the edges (connections) between nodes to the plot. The geom_node_point() function adds the nodes to the plot, with the size and color of each node determined by its degree centrality. The scale_color_gradient() function sets the color gradient for the nodes based on their degree centrality values, with lower values in blue and higher values in red. The labs() function sets the title for each plot.
+
+ -  Create List of Plots: A list of the three plots is created for easy access and comparison.
+
+:::
+
+::: {.callout-note collapse="true"}
+
+
+The type of goods traded is designated by the Harmonized System (HS) codes, which for the scope of this analysis, falls within the range 160300-160599. This HS code range corresponds to various kinds of prepared or preserved fish, crustaceans, and mollusks. 
+
+In this analysis, we leverage Degree Centrality, a key measure in network analysis, to identify the most significant nodes (companies) in the network and patterns of transactions in the fishing industry. Degree Centrality is computed in three forms:
+
+ -  In-Degree Centrality: It measures the number of incoming connections to a node. In this Analysis, a higher In-Degree Centrality indicates that a particular fishing company receives a considerable amount of prepared or preserved seafood. The visual representation uses node sizes to mirror this measure with five levels: 0, 50,100,150,200, where a larger size signifies higher In-Degree Centrality.
+
+ -   Out-Degree Centrality: This quantifies the number of outgoing connections from a node. In our case, a higher Out-Degree Centrality suggests a company is a prominent sender or supplier of prepared or preserved seafood. The node sizes, varying across four levels: 0, 10,20,30, visually signify this measure, with larger sizes indicating higher Out-Degree Centrality.
+
+ -   Total Degree Centrality: This metric, the sum of In-Degree and Out-Degree, provides an overall indication of a node's connectivity within the network, irrespective of the direction of the edge. A high Total Degree Centrality signifies a company engaged in a significant volume of transactions, both in receiving and dispatching seafood. Nodes are visually depicted with varying sizes based on their Total Degree Centrality across four levels: 50,100,150,200.
+
+In this  we calculate these three forms of Degree Centrality for each node (fishing company) for the year 2028, incorporating this information into the network. The resulting visualization aids in understanding the distribution of these centrality measures across the network.
+
+The colors in the visualization represent the Degree Centrality values, shifting from blue (lower centrality) to red (higher centrality). This color-coding provides an effective way to visually identify highly connected nodes in the network, which might serve as critical transaction hubs within the network. 
+
+
+:::
+
+### 230100, 253099
+
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2028_2_in <- degree(Graph2028_2, mode = "in")
+DC_2028_2_out <- degree(Graph2028_2, mode = "out")
+DC_2028_2_all <- degree(Graph2028_2, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2028_2$nodes$DC_2028_2_in <- DC_2028_2_in
+Graph2028_2$nodes$DC_2028_2_out <- DC_2028_2_out
+Graph2028_2$nodes$DC_2028_2_all <- DC_2028_2_all
+
+# Creating a graph plot with node size proportional to degree centrality
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2028_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2028_2_in, color = DC_2028_2_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2028")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2028_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2028_2_out, color = DC_2028_2_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2028")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2028_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2028_2_all, color = DC_2028_2_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2028")
+
+plot_list
+```
+
+::: {.callout-note collapse="true"}
+The edges between the nodes represent transactions involving specific goods categories, identified by Harmonized System (HS) codes 230100 and 253099 for this analysis. HS Code 230100 refers to flours, meals,fish and pellets of meat or meat offal. 
+
+Degree Centrality is computed in three different forms:
+
+ -    In-Degree Centrality: Higher In-Degree Centrality indicates that a company receives substantial amounts of the specific goods. For this analysis, the node sizes in the visual representation indicate In-Degree Centrality with five different levels: 0, 5, 10, 15, 20. A larger node size signifies higher In-Degree Centrality.
+
+ -    Out-Degree Centrality: Higher Out-Degree Centrality indicates that a company is a significant sender or supplier of the specific goods. Node sizes in the visual representation range over five levels: 0, 2.5, 5.0, 7.5, 10. A larger node size indicates higher Out-Degree Centrality.
+
+  -   Total Degree Centrality: It provides an overall indication of a node's connectivity within the network, irrespective of the direction of the edge. A high Total Degree Centrality indicates a company with a significant volume of transactions, both in receiving and sending goods. Nodes sizes in the visual representation represent the Total Degree Centrality and range over four levels: 5, 10, 15, 20.
+
+:::
+
+### 300000-390000
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2028_3_in <- degree(Graph2028_3, mode = "in")
+DC_2028_3_out <- degree(Graph2028_3, mode = "out")
+DC_2028_3_all <- degree(Graph2028_3, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2028_3$nodes$DC_2028_3_in <- DC_2028_3_in
+Graph2028_3$nodes$DC_2028_3_out <- DC_2028_3_out
+Graph2028_3$nodes$DC_2028_3_all <- DC_2028_3_all
+
+# Creating a graph plot with node size proportional to degree centrality
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2028_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2028_3_in, color = DC_2028_3_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2028")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2028_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2028_3_out, color = DC_2028_3_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2028")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2028_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.3) +
+  geom_node_point(aes(size = DC_2028_3_all, color = DC_2028_3_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2028")
+
+plot_list
+```
+
+
+:::
+
+
+
+## 2029
+::: panel-tabset
+### 160300-160599
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2029_1_in <- degree(Graph2029_1, mode = "in")
+DC_2029_1_out <- degree(Graph2029_1, mode = "out")
+DC_2029_1_all <- degree(Graph2029_1, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2029_1$nodes$DC_2029_1_in <- DC_2029_1_in
+Graph2029_1$nodes$DC_2029_1_out <- DC_2029_1_out
+Graph2029_1$nodes$DC_2029_1_all <- DC_2029_1_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2029_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_1_in, color = DC_2029_1_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2029")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2029_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_1_out, color = DC_2029_1_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2029")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2029_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_1_all, color = DC_2029_1_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2029")
+
+plot_list
+```
+
+
+
+### 230100, 253099
+
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2029_2_in <- degree(Graph2029_2, mode = "in")
+DC_2029_2_out <- degree(Graph2029_2, mode = "out")
+DC_2029_2_all <- degree(Graph2029_2, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2029_2$nodes$DC_2029_2_in <- DC_2029_2_in
+Graph2029_2$nodes$DC_2029_2_out <- DC_2029_2_out
+Graph2029_2$nodes$DC_2029_2_all <- DC_2029_2_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2029_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_2_in, color = DC_2029_2_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2029")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2029_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_2_out, color = DC_2029_2_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2029")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2029_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_2_all, color = DC_2029_2_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2029")
+
+plot_list
+```
+
+### 300000-390000
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2029_3_in <- degree(Graph2029_3, mode = "in")
+DC_2029_3_out <- degree(Graph2029_3, mode = "out")
+DC_2029_3_all <- degree(Graph2029_3, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2029_3$nodes$DC_2029_3_in <- DC_2029_3_in
+Graph2029_3$nodes$DC_2029_3_out <- DC_2029_3_out
+Graph2029_3$nodes$DC_2029_3_all <- DC_2029_3_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2029_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_3_in, color = DC_2029_3_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2029")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2029_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_3_out, color = DC_2029_3_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2029")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2029_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2029_3_all, color = DC_2029_3_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2029")
+
+plot_list
+```
+
+:::
+
+
+
+## 2030
+::: panel-tabset
+### 160300-160599
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2030_1_in <- degree(Graph2030_1, mode = "in")
+DC_2030_1_out <- degree(Graph2030_1, mode = "out")
+DC_2030_1_all <- degree(Graph2030_1, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2030_1$nodes$DC_2030_1_in <- DC_2030_1_in
+Graph2030_1$nodes$DC_2030_1_out <- DC_2030_1_out
+Graph2030_1$nodes$DC_2030_1_all <- DC_2030_1_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2030_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_1_in, color = DC_2030_1_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2030")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2030_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_1_out, color = DC_2030_1_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2030")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2030_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_1_all, color = DC_2030_1_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2030")
+
+plot_list
+```
+
+
+
+### 230100, 253099
+
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2030_2_in <- degree(Graph2030_2, mode = "in")
+DC_2030_2_out <- degree(Graph2030_2, mode = "out")
+DC_2030_2_all <- degree(Graph2030_2, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2030_2$nodes$DC_2030_2_in <- DC_2030_2_in
+Graph2030_2$nodes$DC_2030_2_out <- DC_2030_2_out
+Graph2030_2$nodes$DC_2030_2_all <- DC_2030_2_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2030_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_2_in, color = DC_2030_2_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2030")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2030_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_2_out, color = DC_2030_2_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2030")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2030_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_2_all, color = DC_2030_2_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2030")
+
+plot_list
+```
+
+### 300000-390000
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2030_3_in <- degree(Graph2030_3, mode = "in")
+DC_2030_3_out <- degree(Graph2030_3, mode = "out")
+DC_2030_3_all <- degree(Graph2030_3, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2030_3$nodes$DC_2030_3_in <- DC_2030_3_in
+Graph2030_3$nodes$DC_2030_3_out <- DC_2030_3_out
+Graph2030_3$nodes$DC_2030_3_all <- DC_2030_3_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2030_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_3_in, color = DC_2030_3_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2030")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2030_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_3_out, color = DC_2030_3_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2030")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2030_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2030_3_all, color = DC_2030_3_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2030")
+
+plot_list
+```
+
+:::
+
+
+
+## 2031
+::: panel-tabset
+### 160300-160599
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2031_1_in <- degree(Graph2031_1, mode = "in")
+DC_2031_1_out <- degree(Graph2031_1, mode = "out")
+DC_2031_1_all <- degree(Graph2031_1, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2031_1$nodes$DC_2031_1_in <- DC_2031_1_in
+Graph2031_1$nodes$DC_2031_1_out <- DC_2031_1_out
+Graph2031_1$nodes$DC_2031_1_all <- DC_2031_1_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2031_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_1_in, color = DC_2031_1_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2031")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2031_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_1_out, color = DC_2031_1_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2031")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2031_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_1_all, color = DC_2031_1_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2031")
+
+plot_list
+```
+
+
+
+### 230100, 253099
+
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2031_2_in <- degree(Graph2031_2, mode = "in")
+DC_2031_2_out <- degree(Graph2031_2, mode = "out")
+DC_2031_2_all <- degree(Graph2031_2, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2031_2$nodes$DC_2031_2_in <- DC_2031_2_in
+Graph2031_2$nodes$DC_2031_2_out <- DC_2031_2_out
+Graph2031_2$nodes$DC_2031_2_all <- DC_2031_2_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2031_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_2_in, color = DC_2031_2_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2031")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2031_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_2_out, color = DC_2031_2_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2031")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2031_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_2_all, color = DC_2031_2_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2031")
+
+plot_list
+```
+
+### 300000-390000
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2031_3_in <- degree(Graph2031_3, mode = "in")
+DC_2031_3_out <- degree(Graph2031_3, mode = "out")
+DC_2031_3_all <- degree(Graph2031_3, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2031_3$nodes$DC_2031_3_in <- DC_2031_3_in
+Graph2031_3$nodes$DC_2031_3_out <- DC_2031_3_out
+Graph2031_3$nodes$DC_2031_3_all <- DC_2031_3_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2031_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_3_in, color = DC_2031_3_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2031")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2031_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_3_out, color = DC_2031_3_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2031")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2031_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2031_3_all, color = DC_2031_3_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2031")
+
+plot_list
+```
+
+:::
+
+
+
+
+## 2032
+::: panel-tabset
+### 160300-160599
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2032_1_in <- degree(Graph2032_1, mode = "in")
+DC_2032_1_out <- degree(Graph2032_1, mode = "out")
+DC_2032_1_all <- degree(Graph2032_1, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2032_1$nodes$DC_2032_1_in <- DC_2032_1_in
+Graph2032_1$nodes$DC_2032_1_out <- DC_2032_1_out
+Graph2032_1$nodes$DC_2032_1_all <- DC_2032_1_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2032_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_1_in, color = DC_2032_1_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2032")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2032_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_1_out, color = DC_2032_1_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2032")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2032_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_1_all, color = DC_2032_1_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2032")
+
+plot_list
+```
+
+
+
+### 230100, 253099
+
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2032_2_in <- degree(Graph2032_2, mode = "in")
+DC_2032_2_out <- degree(Graph2032_2, mode = "out")
+DC_2032_2_all <- degree(Graph2032_2, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2032_2$nodes$DC_2032_2_in <- DC_2032_2_in
+Graph2032_2$nodes$DC_2032_2_out <- DC_2032_2_out
+Graph2032_2$nodes$DC_2032_2_all <- DC_2032_2_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2032_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_2_in, color = DC_2032_2_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2032")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2032_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_2_out, color = DC_2032_2_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2032")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2032_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_2_all, color = DC_2032_2_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2032")
+
+plot_list
+```
+
+### 300000-390000
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2032_3_in <- degree(Graph2032_3, mode = "in")
+DC_2032_3_out <- degree(Graph2032_3, mode = "out")
+DC_2032_3_all <- degree(Graph2032_3, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2032_3$nodes$DC_2032_3_in <- DC_2032_3_in
+Graph2032_3$nodes$DC_2032_3_out <- DC_2032_3_out
+Graph2032_3$nodes$DC_2032_3_all <- DC_2032_3_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2032_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_3_in, color = DC_2032_3_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2032")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2032_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_3_out, color = DC_2032_3_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2032")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2032_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2032_3_all, color = DC_2032_3_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2032")
+
+plot_list
+```
+
+:::
+
+
+
+
+## 2033
+::: panel-tabset
+### 160300-160599
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2033_1_in <- degree(Graph2033_1, mode = "in")
+DC_2033_1_out <- degree(Graph2033_1, mode = "out")
+DC_2033_1_all <- degree(Graph2033_1, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2033_1$nodes$DC_2033_1_in <- DC_2033_1_in
+Graph2033_1$nodes$DC_2033_1_out <- DC_2033_1_out
+Graph2033_1$nodes$DC_2033_1_all <- DC_2033_1_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2033_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_1_in, color = DC_2033_1_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2033")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2033_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_1_out, color = DC_2033_1_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2033")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2033_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_1_all, color = DC_2033_1_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2033")
+
+plot_list
+```
+
+
+
+### 230100, 253099
+
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2033_2_in <- degree(Graph2033_2, mode = "in")
+DC_2033_2_out <- degree(Graph2033_2, mode = "out")
+DC_2033_2_all <- degree(Graph2033_2, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2033_2$nodes$DC_2033_2_in <- DC_2033_2_in
+Graph2033_2$nodes$DC_2033_2_out <- DC_2033_2_out
+Graph2033_2$nodes$DC_2033_2_all <- DC_2033_2_all
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2033_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_2_in, color = DC_2033_2_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2033")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2033_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_2_out, color = DC_2033_2_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2033")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2033_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_2_all, color = DC_2033_2_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2033")
+
+plot_list
+```
+
+### 300000-390000
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2033_3_in <- degree(Graph2033_3, mode = "in")
+DC_2033_3_out <- degree(Graph2033_3, mode = "out")
+DC_2033_3_all <- degree(Graph2033_3, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2033_3$nodes$DC_2033_3_in <- DC_2033_3_in
+Graph2033_3$nodes$DC_2033_3_out <- DC_2033_3_out
+Graph2033_3$nodes$DC_2033_3_all <- DC_2033_3_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2033_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_3_in, color = DC_2033_3_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2033")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2033_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_3_out, color = DC_2033_3_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2033")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2033_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2033_3_all, color = DC_2033_3_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2033")
+
+plot_list
+```
+
+:::
+
+
+
+
+## 2034
+::: panel-tabset
+### 160300-160599
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2034_1_in <- degree(Graph2034_1, mode = "in")
+DC_2034_1_out <- degree(Graph2034_1, mode = "out")
+DC_2034_1_all <- degree(Graph2034_1, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2034_1$nodes$DC_2034_1_in <- DC_2034_1_in
+Graph2034_1$nodes$DC_2034_1_out <- DC_2034_1_out
+Graph2034_1$nodes$DC_2034_1_all <- DC_2034_1_all
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2034_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_1_in, color = DC_2034_1_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2034")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2034_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_1_out, color = DC_2034_1_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2034")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2034_1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_1_all, color = DC_2034_1_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2034")
+
+plot_list
+```
+
+
+
+### 230100, 253099
+
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2034_2_in <- degree(Graph2034_2, mode = "in")
+DC_2034_2_out <- degree(Graph2034_2, mode = "out")
+DC_2034_2_all <- degree(Graph2034_2, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2034_2$nodes$DC_2034_2_in <- DC_2034_2_in
+Graph2034_2$nodes$DC_2034_2_out <- DC_2034_2_out
+Graph2034_2$nodes$DC_2034_2_all <- DC_2034_2_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2034_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_2_in, color = DC_2034_2_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2034")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2034_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_2_out, color = DC_2034_2_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2034")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2034_2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_2_all, color = DC_2034_2_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2034")
+
+plot_list
+```
+
+### 300000-390000
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_2034_3_in <- degree(Graph2034_3, mode = "in")
+DC_2034_3_out <- degree(Graph2034_3, mode = "out")
+DC_2034_3_all <- degree(Graph2034_3, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph2034_3$nodes$DC_2034_3_in <- DC_2034_3_in
+Graph2034_3$nodes$DC_2034_3_out <- DC_2034_3_out
+Graph2034_3$nodes$DC_2034_3_all <- DC_2034_3_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph2034_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_3_in, color = DC_2034_3_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for 2034")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph2034_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_3_out, color = DC_2034_3_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for 2034")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph2034_3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_2034_3_all, color = DC_2034_3_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for 2034")
+
+plot_list
+```
+
+:::
+
+
+
+
+## ALL
+::: panel-tabset
+### 160300-160599
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_ALL_1_in <- degree(Graph_All1, mode = "in")
+DC_ALL_1_out <- degree(Graph_All1, mode = "out")
+DC_ALL_1_all <- degree(Graph_All1, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph_All1$nodes$DC_ALL_1_in <- DC_ALL_1_in
+Graph_All1$nodes$DC_ALL_1_out <- DC_ALL_1_out
+Graph_All1$nodes$DC_ALL_1_all <- DC_ALL_1_all
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph_All1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_1_in, color = DC_ALL_1_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for all Years")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph_All1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_1_out, color = DC_ALL_1_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for all Years")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph_All1, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_1_all, color = DC_ALL_1_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for all Years")
+
+plot_list
+```
+
+
+
+### 230100, 253099
+
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_ALL_2_in <- degree(Graph_All2, mode = "in")
+DC_ALL_2_out <- degree(Graph_All2, mode = "out")
+DC_ALL_2_all <- degree(Graph_All2, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph_All2$nodes$DC_ALL_2_in <- DC_ALL_2_in
+Graph_All2$nodes$DC_ALL_2_out <- DC_ALL_2_out
+Graph_All2$nodes$DC_ALL_2_all <- DC_ALL_2_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph_All2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_2_in, color = DC_ALL_2_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for all Years")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph_All2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_2_out, color =DC_ALL_2_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for all Years")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph_All2, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_2_all, color = DC_ALL_2_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for all Years")
+
+plot_list
+```
+
+### 300000-390000
+
+```{r}
+
+
+# Calculate degree centrality for nodes
+DC_ALL_3_in <- degree(Graph_All3, mode = "in")
+DC_ALL_3_out <- degree(Graph_All3, mode = "out")
+DC_ALL_3_all <- degree(Graph_All3, mode = "all")
+
+# Add degree centrality to the nodes data of the graph
+Graph_All3$nodes$DC_ALL_3_in <- DC_ALL_3_in
+Graph_All3$nodes$DC_ALL_3_out <- DC_ALL_3_out
+Graph_All3$nodes$DC_ALL_3_all <- DC_ALL_3_all
+
+
+plot_list <- list()
+plot_list[["In Degree Centrality"]] <- ggraph(Graph_All3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_3_in, color = DC_ALL_3_in)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "In Degree Centrality Network for all Years")
+
+plot_list[["Out Degree Centrality"]] <- ggraph(Graph_All3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_3_out, color = DC_ALL_3_out)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "Out Degree Centrality Network for all Years")
+
+plot_list[["All Degree Centrality"]] <- ggraph(Graph_All3, layout = "fr") + 
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = DC_ALL_3_all, color = DC_ALL_3_all)) +
+  scale_color_gradient(low = "blue", high = "red") +
+  theme_graph() +
+  labs(title = "All Degree Centrality Network for all Years")
+
+plot_list
+```
+
+:::
+
+:::
+
+
+
+
+
+
+## Recommendations, Limitations and Takeaways
+
+**RECOMMENDATIONS**
+-   Continuous monitoring of the network can lead to early detection of significant changes in trade patterns. If a company suddenly changes its degree of centrality (either in, out, or total), it may be worth investigating the causes behind such a change.
+
+-   Companies with high degree centrality (especially out-degree) can be considered critical nodes in the network. If such companies face disruptions, the impact on the overall network can be significant. Thus, a risk assessment focused on these nodes may be beneficial to ensure the network's robustness.
+
+-       Delving into trading patterns and shipment weight changes over time could provide additional insights.
+
+-    Exploring the behavior within communities of companies could be another avenue for detecting IUU activities more efficiently.
+
+**LIMITATIONS**
+
+-   The analysis is based on the transactions of goods under specific HS codes. However, it does not account for other potentially relevant factors such as the companies' sizes, the actual value of transactions, or the geographical information which could provide additional valuable insights.
+
+-   Without additional contextual information about the nodes (companies) and the nature of the transactions, interpretations and recommendations based on the network structure may have limitations.
+
+-   Degree centrality assumes that connections are equally important. In reality, a company's importance might not just depend on the number of connections it has, but also on the quality of these connections, the value of goods transferred, and its strategic position in the network.
+
+-   Rapid growth in shipping networks might increase the complexity of tracking and monitoring potential IUU activities.
+
+-   Without concrete indicators, classifying companies as red or green flags for IUU based solely on their degree of import/export activities might be speculative.
+
+**KEY TAKEAWAYS**
+
+-   A majority of companies demonstrated low in,out and total degree centrality. This suggests that the networks in this industry might be relatively scattered and possibly disjointed.
+
+-   There has been an observable expansion in the shipping networks over time, visible through an increase in connections and shipment frequency. Monitoring this expansion rate is crucial as sudden spikes could indicate potential illegal, unreported, and unregulated (IUU) activities.
+
+-   The high-import/export companies and their top trading partners could potentially act as strategic points for monitoring and controlling IUU activities in the industry.
+
+-   The sparse and potentially disconnected nature of the network might suggest a lack of centralized control or regulation in the industry.
