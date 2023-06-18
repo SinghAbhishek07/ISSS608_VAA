@@ -1,0 +1,845 @@
+---
+title: "Take-home Exercise 3"
+subtitle:  "**<center> Time Traveling Through Trade: Visualizing Temporal Patterns to Expose Illegal Fishing</center>**"
+author: "Abhishek Singh"
+date: 28 May 2023
+date-modified: "`r Sys.Date()`"
+execute: 
+  echo: true
+  eval: true
+  warning: false
+format:
+  html:
+    code-fold: true
+    code-summary: "A Glimpse into the Code "
+---
+
+## **Overview**
+
+FishEye International is a non-profit organization that counters illegal, unreported, and unregulated (IUU) fishing activities. They have recently obtained access to a comprehensive database from an international finance corporation, detailing fishing-related businesses. The database, converted into a knowledge graph, carries valuable information about the companies, their owners, employees, and financial
+conditions. Traditionally, analysts at FishEye have attempted to uncover business anomalies using standard graph analyses and node-link visualizations. However, the intricate and vast scale of the data has made it challenging to discern the true structure of businesses. Consequently, a more effective visual analytics approach is urgently needed to help identify anomalous companies potentially involved in IUU. This analysis aims to provide a detailed understanding of patterns for entities and their activities over time
+
+
+## **Objective**
+
+The primary goal of this assignment is to devise a new  approach that can efficiently process the large and detailed knowledge graph data to identify anomalies in fishing businesses. This approach should allow us to spot irregular patterns, uncover hidden relationships, and reveal potential IUU-involved companies. By accomplishing this objective, we aim to significantly improve FishEye International's ability to identify, monitor, and counteract IUU fishing activities.
+
+## **My TASK**
+
+Use visual analytics to identify anomalies in the business groups present in the knowledge graph. Limit your response to 400 words and 5 images.
+
+
+## **1. Data Preparation**
+
+### 1.1 Install R packages and import dataset
+
+```{r}
+pacman::p_load(jsonlite, igraph, tidygraph, ggraph,
+               lubridate, tidyverse, graphlayouts,knitr,plotly, 
+               ggthemes,hrbrthemes,treemap,patchwork, ggiraph,
+               ggstatsplot, summarytools, ggforce, 
+               skimr, tidytext,wordcloud)
+```
+
+::: {.callout-important collapse="true"}
+The code chunk  uses `pacman::p_load()` to check if packages are installed. If they are, they will be launched into R. The packages used are
+
+-   `jsonlite`: It is used for working with JSON data in R, providing functions to parse JSON and convert it to data frames.
+
+-   `igraph` : It offers a wide range of graph algorithms and visualization capabilities
+
+-   `tidygraph`: An interface for manipulating and analyzing graphs using the principles of tidy data
+
+-   `ggraph`: It allows for creating aesthetically pleasing and customizable graph visualizations.
+
+
+-   `lubridate`: It is a package for working with dates and times in R.
+
+
+-   `ggiraph`: used for interactive features such as tooltips, zooming, and panning. It is particularly useful for creating interactive web-based visualizations.
+
+-   `hrbrthemes`: It provides additional themes and styling options
+
+-   `treemap`: This package offers functions to create treemaps
+
+-   `plotly`: Used for creating interactive web-based graphs.
+
+-   `ggstatsplot`: Used for creating graphics with details from statistical tests.
+
+-   `graphlayouts`: provides various graph layout algorithms for arranging the nodes and edges of a graph in a visually appealing manner.
+
+-    `knitr`: Used for dynamic report generation
+
+
+-   `ggdist`: Used for visualising distribution and uncertainty
+
+-   `ggthemes`: Provide additional themes for `ggplot2`
+
+-   `tidyverse`: A collection of core packages designed for data science, used extensively for data preparation and wrangling.
+
+-   `rstatix`: used for data manipulation, summarization, and group-wise comparisons
+
+-   `Hmisc` : used to compute descriptive statistics for a variable in a dataset
+
+-   `DT` : DataTables that create interactive table on html page.
+
+-   `summarytools`- used for creating summary statistics and tables for data exploration and reporting
+
+-   `kableExtra`- is used for creating tables in various output formats, such as HTML, PDF, or Word documents.
+
+-   `ggplot2`- provides a flexible and layered approach to create a wide variety of high-quality static and interactive plots.
+
+-   `summarytools`- used for creating summary statistics and tables for data exploration and reporting
+
+    All packages can be found within CRAN.
+
+`pacman::p_load()` function from the `pacman` package is used in the following code chunk to install and call the libraries of multiple R packages:
+:::
+
+
+### 1.2 Importing data sets
+
+In the code chunk below , fromJSON() of jsonlite package is used to import MC3.json into R environment. The output is called mc3. It is a large list R object.
+```{r}
+mc3 <- fromJSON("data/MC3.json")
+```
+
+
+### 1.3 Extracing Edges
+
+::: panel-tabset
+
+## Edge
+
+```{r}
+MC3_Edges <- as_tibble(mc3$links) %>% 
+  distinct() %>%
+  mutate(source = as.character(source),
+         target = as.character(target),
+         type = as.character(type)) %>%
+  group_by(source, target, type) %>%
+    summarise(weights = n(), .groups = "drop") %>%
+  filter(source!=target) %>%
+  ungroup()
+```
+
+
+```{r}
+kable(head(MC3_Edges), format = "html", caption = "EDGES")
+```
+
+
+::: callout-note
+-   distinct() is used to ensure that there will be no duplicated records.
+-   mutate() and as.character() are used to convert the field data type from list to character.
+-   group_by() and summarise() are used to count the number of unique links.
+-   the filter `(source!=target)` is to ensure that no record with similar source and target.
+
+:::
+
+## Data Exploration
+```{r}
+skim(MC3_Edges)
+```
+
+```{r}
+str(MC3_Edges)
+```
+
+```{r}
+
+DT::datatable(MC3_Edges, class= "compact", filter='top')
+```
+
+## Summary Statitics
+
+```{r}
+Hmisc::describe(MC3_Edges)
+```
+
+
+## Data Health
+
+**Checking Missing Values:**
+
+```{r}
+colSums(is.na(MC3_Edges))
+```
+
+**Checking  Duplicates**
+```{r}
+any(duplicated(MC3_Edges))
+```
+
+
+## Data Dictionary
+
+-    The dataset comprises of an undirected multi-graph with 27,622 nodes and 24,038 edges.
+-    It contains 7,794 connected components.
+-    The graph is undirected, implying that relationships or interactions do not have a specific direction or order. In other words, if there is a connection between two nodes, it applies both ways.
+
+**Edge Attributes:**
+
+-    type: This attribute represents the type or nature of the relationship or interaction between the nodes connected by the edge.
+-    source: This is the ID of the source node. It identifies where the relationship or interaction originates from in the network.
+-    target: This is the ID of the target node. It identifies where the relationship or interaction is directed towards in the network.
+-    role: This provides a more specific classification of the relationship or interaction represented by the edge, like beneficial owner or company contacts.
+
+
+## Data Visualization
+
+```{r}
+
+
+MC3_Edges_count <- MC3_Edges %>%
+  group_by(type) %>%
+  summarise(n = n())
+
+
+p <- ggplot(data = MC3_Edges_count, aes(x = type, y = n, fill = type)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = n), vjust = -0.5) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "seashell"),
+        panel.grid.major = element_line(color = "grey80"),
+        panel.grid.minor = element_blank(),
+        legend.position = "top",
+        text = element_text(size = 12, face = "bold"),
+        plot.title = element_text(hjust = 0.5)) +
+  labs(x = "Type", y = "Count", fill = "Type",
+       title = "Distribution of Edge Types")
+
+ggplotly(p)
+
+
+```
+
+
+:::
+
+### 1.3 Extracting Nodes
+
+::: panel-tabset
+
+## Node
+
+```{r}
+MC3_Nodes <- as_tibble(mc3$nodes) %>%
+  mutate(country = as.character(country),
+         id = as.character(id),
+         product_services = as.character(product_services),
+         revenue_omu = as.numeric(as.character(revenue_omu)),
+         type = as.character(type)) %>%
+  select(id, country, type, revenue_omu, product_services)
+```
+
+```{r}
+kable(head(MC3_Nodes), format = "html", caption = "NODES")
+```
+
+::: callout-note
+
+-   mutate() and as.character() are used to convert the field data type from list to character.
+-   To convert revenue_omu from list data type to numeric data type, we need to convert the values into character first by using as.character(). Then, as.numeric() will be used to convert them into numeric data type.
+-   select() is used to re-organise the order of the fields.
+
+:::
+
+## Data Exploration
+```{r}
+skim(MC3_Nodes)
+```
+
+```{r}
+str(MC3_Nodes)
+```
+
+```{r}
+
+DT::datatable(MC3_Nodes, class= "compact", filter='top')
+```
+
+## Summary Statitics
+
+```{r}
+Hmisc::describe(MC3_Nodes)
+```
+
+
+## Data Health
+
+**Checking Missing Values:**
+
+```{r}
+colSums(is.na(MC3_Nodes))
+```
+
+**Checking  Duplicates**
+```{r}
+any(duplicated(MC3_Nodes))
+```
+
+## Data Dictionary
+
+-    The dataset comprises of an undirected multi-graph with 27,622 nodes and 24,038 edges.
+-    It contains 7,794 connected components.
+-    The graph is undirected, implying that relationships or interactions do not have a specific direction or order. In other words, if there is a connection between two nodes, it applies both ways.
+
+
+**Node Attributes:**
+
+-    type: The classification or category of the node. This can indicate the nature of the entity, such as company, owner, or worker.
+-    country: This attribute represents the country associated with the node. This can be either a full country name or a two-letter country code.
+-    product_services: This provides a description of the products or services associated with the node. This can help in understanding the node's role in the network.
+-    revenue_omu: This is the operating revenue of the node in Oceanus Monetary Units (OMU). It gives a measure of the financial size or activity of the node.
+-    id: This is the unique identifier of the node. This ID is also the name of the entity it represents.
+-    role: This is a subset of the "type" attribute, providing more detailed classification of the node. It includes roles like beneficial owner or company contacts.
+
+
+#3 Data Visualization
+
+
+```{r}
+
+
+MC3_Nodes_count <- MC3_Nodes %>%
+  group_by(type) %>%
+  summarise(n = n())
+
+
+p <- ggplot(data = MC3_Nodes_count, aes(x = type, y = n, fill = type)) +
+  geom_bar(stat = "identity", color = "black") +
+  geom_text(aes(label = n), vjust = -0.5) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "seashell"),
+        panel.grid.major = element_line(color = "grey80"),
+        panel.grid.minor = element_blank(),
+        legend.position = "top",
+        text = element_text(size = 12, face = "bold"),
+        plot.title = element_text(hjust = 0.5)) +
+  labs(x = "Type", y = "Count", fill = "Type",
+       title = "Distribution of Edge Types")
+
+ggplotly(p)
+
+
+```
+
+:::
+
+
+
+## 2. Visualization
+
+### 2.1 Top 10 Countries with Highest revenue 
+
+
+
+```{r}
+# Group the data by country and calculate the total revenue
+top_countries <- MC3_Nodes %>%
+  group_by(country) %>%
+  summarise(total_revenue = sum(revenue_omu, na.rm = TRUE)) %>%
+  arrange(desc(total_revenue)) %>%
+  head(10)
+
+# Plot the top 10 countries by total revenue
+p <- ggplot(data = top_countries, aes(x = reorder(country, -total_revenue), y = total_revenue)) +
+  geom_bar(stat = "identity") +
+  #geom_text(aes(label = round(total_revenue)), vjust = -0.5) +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "seashell"),
+        panel.grid.major = element_line(color = "grey80"),
+        panel.grid.minor = element_blank(),
+        legend.position = "top",
+        text = element_text(size = 12, face = "bold"),
+        plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  labs(x = "Country", y = "Total Revenue (OMU)", fill = "Country",
+       title = "Top 10 Countries by Total Revenue")
+
+# Convert ggplot object to a plotly object for interactivity
+p_interactive <- ggplotly(p)
+
+p_interactive
+```
+
+## 2.2 Number of Edges (connections) per Node
+
+
+```{r}
+# fuction from igraph-> graph_from_data_frame
+g <- graph_from_data_frame(MC3_Edges, directed = FALSE)
+
+# Calculation of  degrees
+node_degrees <- degree(g)
+
+# Converting to dataframe
+df_degrees <- data.frame(node = names(node_degrees), degree = node_degrees)
+
+# Histogram
+p <- ggplot(df_degrees, aes(x = degree)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  xlim(0, 6) +
+  theme_minimal() +
+  labs(x = "Degree", y = "Count", title = "Distribution of Node Degrees")
+
+gp <- ggplotly(p)
+
+gp
+```
+
+::: callout-note
+
+  -  The majority of the nodes in the network graph have a degree of 1. This means that most entities in the network only have one connection with other entities. A count of 29,229 signifies a substantial proportion of the total nodes.
+
+  -  As the degree increases, the number of nodes that hold that degree decreases substantially. This trend signifies that it's less common for entities to have multiple connections in the network. Nodes with a degree of 2 are 2,526. This number is significantly less than those with a degree of 1, indicating that fewer entities have two connections.
+
+  -  Further decrease is observed for nodes with degrees 3, 4, and 5, having counts of 1,100, 447, and 257 respectively. This consistent decline suggests that entities with many connections are quite rare in this network.
+
+
+  -  Lastly, entities with a degree of 5 are the rarest in the network. It may indicate highly connected entities or potential hubs in the network. Overall, the degree distribution of this network suggests a sparse and potentially disconnected network structure, which might present challenges in identifying broad structural anomalies. However, it also helps highlight entities with higher degrees as potential points of interest.
+
+:::
+
+
+## 2.3 Proportion of Nodes in each 'Country'
+
+
+```{r}
+# Calculating the number of nodes in each country
+country_nodes <- MC3_Nodes %>%
+  count(country) %>%
+  arrange(desc(n)) %>%
+  head(10)
+
+
+p1 <- ggplot(country_nodes, aes(reorder(country, -n), n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Top 10 Countries by Node Count", x = "Country", y = "Node Count") +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "seashell"),
+        panel.grid.major = element_line(color = "grey80"),
+        panel.grid.minor = element_blank(),
+        legend.position = "top",
+        text = element_text(size = 12, face = "bold"),
+        plot.title = element_text(hjust = 0.5)) 
+
+gp1 <- ggplotly(p1)
+
+gp1
+
+
+```
+
+
+::: callout-note
+
+ -   The country with the most nodes in the graph is ZH, accounting for 22,439 nodes. This significant concentration indicates that ZH is a major player within the network and likely plays a crucial role in the industry.
+ -   The second most represented country is Oceanus, with 2,143 nodes. While this is considerably less than ZH, it still represents a substantial number of nodes and suggests that Oceanus also holds a significant position within the network.
+ -   The third most represented country is Marebak, with 742 nodes. Despite having less than a third of the nodes compared to Oceanus and a considerably smaller number compared to ZH, Marebak still has a noteworthy presence within the network.
+
+- Overall, these results suggest a significant concentration of nodes within a few countries, specifically ZH, Oceanus, and Marebak. This could potentially indicate centralization of activities within these regions. Future investigations could help in understanding what specific roles these countries play in the network, and how their large presence may impact the dynamics of the entire network.
+
+
+:::
+
+
+
+
+## 2.4 Centrality
+
+::: panel-tabset
+
+### Prep Edge and Node
+
+```{r}
+id1 <- MC3_Edges %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- MC3_Edges %>%
+  select(target) %>%
+  rename(id = target)
+MC3_Nodes1 <- rbind(id1, id2) %>%
+  distinct() %>%
+  left_join(MC3_Nodes,
+            unmatched = "drop")
+```
+
+
+### TidyGraph
+
+```{r}
+MC3_Graph <- tbl_graph(nodes = MC3_Nodes1,
+                       edges = MC3_Edges,
+                       directed = FALSE) %>%
+  mutate(betweenness_centrality = centrality_betweenness(),
+         closeness_centrality = centrality_closeness())
+```
+
+
+### Plot
+
+
+```{r}
+
+
+
+MC3_Graph %>%
+  filter(betweenness_centrality >= 100000) %>%
+ggraph(layout = "fr") +
+  geom_edge_link(aes(alpha=0.5)) +
+  geom_node_point(aes(
+    size = betweenness_centrality,
+    colors = "lightblue",
+    alpha = 0.5)) +
+  scale_size_continuous(range=c(1,10))+
+  theme_graph(background = "seashell")
+
+```
+
+
+
+
+:::
+
+## 2.5 Top 5 Country by Revenue
+
+
+
+
+```{r}
+
+top_5 <- MC3_Nodes %>%
+  group_by(country) %>%
+  summarise(total_revenue = sum(revenue_omu, na.rm = TRUE)) %>%
+  arrange(desc(total_revenue)) %>%
+  head(5)
+# Filtering
+top_countries_5 <- MC3_Nodes[MC3_Nodes$country %in% top_5$country, ]
+
+# Grouping by country and company, and calculating total revenue per company
+top_countries_5 <- top_countries_5 %>%
+  filter(type=="Company") %>%
+  group_by(country, id) %>%
+  summarise(company_revenue = sum(revenue_omu, na.rm = TRUE), .groups = "drop") %>%
+  arrange(country, desc(company_revenue))
+
+# For each country, keep only the company with the highest revenue
+top_countries_5 <- top_countries_5 %>%
+  group_by(country) %>%
+  slice_max(order_by = company_revenue, n = 5)
+
+
+treemap(top_countries_5,
+        index = c("country", "id"),
+        vSize = "company_revenue",
+        vColor = "company_revenue",
+        palette = "Paired",
+        border.lwds = 2,
+        border.col = "white",
+        title = "Top Companies by Revenue in Top 5 Countries",
+        fontsize.labels = c(14, 10),
+        fontfamily.labels = "Arial", 
+        fontcolor.labels = c("white", "black"),
+        align.labels = list(
+                      c("center", "center"),
+                      c("left", "top")
+        ), 
+        position.legend = "bottom"
+    
+)
+
+
+
+```
+
+::: callout-note
+Below treemap provides a visual representation of the companies that generate the highest revenues in their respective countries.The top 5 countries were selected based on total revenue. In these selected countries, companies were further sorted and the top revenue-generating companies were identified.
+
+The findings from the treemap are as follows:
+
+-    The majority of the highest revenue-generating companies are registered in the country labeled as 'ZH'.
+-    Among these, the top 3 companies in terms of revenue generated have been identified as 'Jones LLC', 'Patton Ltd', and 'Ramirez,Gallaghar and Jhonson' Group.
+-    The dataset also indicates that in the 'Utoporiana' and 'Oceanus' countries, the 'Assam Limited Liability Company' and 'Aqua Advancements Sashimi SE Express' are the top revenue earners respectively.
+
+:::
+
+
+## 2.5 Tokenization
+
+Calculating number of times the word fish appeared in the field product_services.
+
+
+```{r}
+MC3_Nodes %>% 
+    mutate(n_fish = str_count(product_services, "fish")) 
+
+
+```
+
+
+Tokenisation is the process of breaking up a given text into units called tokens. Tokens can be individual words, phrases or even whole sentences. In the process of tokenisation, some characters like punctuation marks may be discarded. The tokens usually become the input for the processes like parsing and text mining.
+
+In the code chunk below, unnest_token() of tidytext is used to split text in product_services field into words.
+
+
+::: panel-tabset
+
+## Tokenization
+
+```{r}
+token_nodes <- MC3_Nodes %>%
+  unnest_tokens(word, 
+                product_services)
+```
+
+Top 15 words:
+
+```{r}
+p <- token_nodes %>%
+  count(word, sort = TRUE) %>%
+  top_n(15) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(x = "Count",
+       y = "Unique words",
+       title = "Count of unique words found in product_services field") +
+  theme(plot.background = element_rect(fill = "seashell"))
+
+ggplotly(p)
+  
+```
+
+The bar chart reveals that the unique words contains some words that may not be useful to use. For instance “a” and “to”. In the word of text mining we call those words stop words. You want to remove these words from your analysis as they are fillers used to compose a sentence.
+
+The tidytext package has a function called stop_words that will help us clean up stop words.
+
+
+## StopWords
+
+```{r}
+
+stopwords_removed <- token_nodes %>% 
+  anti_join(stop_words)
+```
+
+::: callout-tip
+There are two processes:
+
+-   Load the stop_words data included with tidytext. This data is simply a list of words that you may want to remove in a natural language analysis.
+-   Then anti_join() of dplyr package is used to remove all stop words from the analysis.
+
+:::
+
+Checking the Top50 words and their counts
+```{r}
+top_50 <- stopwords_removed %>%
+  count(word, sort = TRUE) %>%
+  top_n(50)
+
+print(top_50)
+
+```
+
+## Top 50 Words
+Removing the unwanted words like 0, Character and Unknown from the stopwords_removed
+
+```{r}
+filtered_words <- stopwords_removed %>%
+  filter(!(word %in% c("0", "character", "unknown")))
+
+
+```
+
+
+
+
+Checking Top 50 words in filtered Words
+
+```{r}
+top_50 <- filtered_words %>%
+  count(word, sort = TRUE) %>%
+  top_n(50)
+
+print(top_50)
+```
+
+## WordCloud
+
+```{r}
+set.seed(1234)
+filtered_words %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 50))
+```
+
+##  Hostogram of Top 15 Words
+
+```{r}
+p <- filtered_words %>%
+  count(word, sort = TRUE) %>%
+  top_n(15) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(x = "Count",
+       y = "Unique words",
+       title = "Count of unique words found in product_services field") +
+  theme(plot.background = element_rect(fill = "seashell"))
+
+ggplotly(p)
+```
+
+
+:::
+
+
+### Betweenness Centrality on top 15 Words 
+In our nodes dataset, we have a unique column named 'product_services', which isn't available in the edges dataset. To perform our analysis, we need to consider 15 specific words having highest count and identify the nodes where these words are mentioned in the 'product_services' column.
+
+After identifying and filtering these particular nodes, we'll utilize them as a reference for filtering our edges dataset. Specifically, we'll only keep the edges where the 'source' or 'target' matches with the ID of our filtered nodes. This method allows us to create a network subset that's related to our specific words from the 'product_services' column.
+
+```{r}
+top_words <- c("products", "fish", "seafood", "frozen", "services", 
+               "food", "related", "equipment", "fresh", "salmon", 
+               "accessories", "materials", "systems", "freight") 
+
+# Filtering nodes that contain the top words in the product_services column
+MC3_NodesFilter <- MC3_Nodes %>% 
+  filter(str_detect(product_services, paste(top_words, collapse = "|")))
+
+# Filtering  edges where the source or target is in the filtered nodes
+# Filtering edges where the source or target is in the filtered nodes
+MC3_EdgeFilter <- MC3_Edges %>% 
+  filter(source %in% MC3_NodesFilter$id | target %in% MC3_NodesFilter$id)
+
+```
+
+
+```{r}
+id1 <- MC3_EdgeFilter %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- MC3_EdgeFilter %>%
+  select(target) %>%
+  rename(id = target)
+MC3_Nodes1 <- rbind(id1, id2) %>%
+  distinct() %>%
+  left_join(MC3_Nodes,
+            unmatched = "drop")
+
+
+MC3_G <- tbl_graph(nodes = MC3_Nodes1,
+                       edges = MC3_EdgeFilter,
+                       directed = FALSE)%>%
+  mutate(betweenness_centrality = centrality_betweenness(),
+         closeness_centrality = centrality_closeness()
+        
+  )
+
+
+```
+
+**Betweenness centrality **
+
+Betweenness centrality measures the number of times a node acts as a bridge along the shortest path between two other nodes. It is useful for identifying nodes that serve as a connector or broker within a network. In illegal fishing, a node with high betweenness centrality might represent a key intermediary, such as a specific ship or company that's heavily involved in transporting or selling illegal catch.
+
+
+```{r}
+degrees <- degree(MC3_G, mode = "all")
+
+MC3_G_filtered <- MC3_G %>%
+  activate(nodes) %>%
+  filter(betweenness_centrality >= 10000)  
+
+MC3_G_filtered %>%
+  activate(nodes) %>%
+  mutate(community = as.factor(membership(cluster_louvain(.)))) %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(alpha = 0.5)) +
+  geom_node_point(aes(size = betweenness_centrality,
+                      color = community,  # Use the community variable for color
+                      alpha = 0.5), show.legend = TRUE) +
+  scale_size_continuous(range = c(1, 10)) +
+  labs(title = "Betweenness centrality") + 
+  theme(plot.background = element_rect(fill = "seashell"))
+
+```
+## 2.6 Voilin Plot Type by Revenue
+
+The violin plot visualizes the distribution of a numerical variable (revenue_omu) across different categories (type). It provides information on the central tendency, variability, and distributional shape of the revenue data for each type.
+
+```{r}
+
+
+p <- ggplot(MC3_Nodes1, aes(x = type, y = revenue_omu)) +
+  geom_violin(trim = FALSE) +
+  labs(x = "Type", y = "Revenue OMU") +
+  theme(plot.background = element_rect(fill = "seashell")) +
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip()
+
+
+plotly::ggplotly(p)
+
+
+```
+
+
+Additionally,  created another violin plot specifically for 'beneficial owner' type because it has more revenue than the rest, this would allow a more detailed examination of the revenue distribution for this specific type.
+
+
+
+
+```{r}
+# Filter data
+MC3_Nodes1_filtered <- MC3_Nodes1 %>%
+  filter(type %in% c("Beneficial Owner"))
+
+# Create the violin plot
+p <- ggplot(MC3_Nodes1_filtered, aes(x = type, y = revenue_omu)) +
+  geom_violin(trim = FALSE) +
+  labs(x = "Type", y = "Revenue OMU") +
+  theme(plot.background = element_rect(fill = "seashell")) +
+  scale_y_continuous(labels = scales::comma) +
+  coord_flip()
+
+# Convert to interactive plot
+plotly::ggplotly(p)
+
+```
+
+## Recommendations, Limitations and Takeaways
+
+**RECOMMENDATIONS**
+
+-    ``Deep Dive into Entities with High Degrees:`` Given the sparsity of the network, entities with higher degrees can be seen as significant connectors. A deeper dive into these entities could provide more valuable insights. What type of entities are they? How do they connect different parts of the network? What role do they play in the context of fishing business and potential IUU activities?
+
+-    ``Country-Specific Analysis:`` Given the concentration of nodes in a few countries (especially ZH), it would be valuable to conduct a more detailed country-specific analysis. Understanding the specific roles these countries play in the network and how their large presence impacts the dynamics of the entire network could provide valuable insights.
+
+-    ``Revenue-Based Analysis:`` The treemap visualization and violin plots provided valuable insights into the revenue patterns across different companies and types of entities. A more detailed revenue-based analysis could be performed, exploring the relationship between revenue and other attributes or network properties.
+
+**LIMITATIONS**
+
+-    ``Network Sparsity:`` The network appears to be quite sparse, potentially indicating a disconnected network structure. This might present challenges in identifying broad structural anomalies or overarching patterns.
+
+-    ```Limited Attributes for Analysis:``The lack of attributes limit the depth and breadth of the analysis. For example, attributes related to the nature and volume of fishing activities, legal status, historical data, etc., could have provided additional dimensions for analysis.
+
+**KEY TAKEAWAYS**
+
+
+-    ``Significance of Network Measures:`` Network measures such as degree and betweenness centrality can provide valuable insights into the roles and importance of nodes within a network. High-degree nodes and nodes with high betweenness centrality can be of particular interest in the context of IUU fishing activities.
+
+-    ``Role of Textual Data:`` The analysis also highlighted the potential of textual data. The use of specific words in the 'product_services' column allowed for a more targeted analysis and extraction of a relevant subset of the network.
+
+-    ``Importance of Revenue Analysis:`` The analysis of revenue data revealed patterns and anomalies that can be indicative of potential IUU activities. Companies generating disproportionately high revenues and the revenue patterns of specific types of entities are worth further investigation.

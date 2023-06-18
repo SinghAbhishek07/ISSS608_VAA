@@ -1258,6 +1258,8 @@ The dataframe ‘Graph2028_1’ has 1507 nodes and 2396 edges. It is a directed 
 Graph2028_2
 ```
 The dataframe ‘Graph2028_2’ has 309 nodes and 274 edges. It is a directed graph with 58 components.
+
+
 ### 300000-390000
 ```{r}
 Graph2028_3
